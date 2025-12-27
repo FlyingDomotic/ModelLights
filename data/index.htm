@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+	<!-- Main page of light server -->
+	<head>
+		<meta charset="utf-8" />
+		<title>Light server</title>
+        <link rel="stylesheet" href="style.css" type="text/css" />
+        <script src="translate.js"></script>
+        <script src="logic.js"></script>
+        <script>
+            function loadEdit() {window.location.href = "./edit.htm";}      // Display edit page
+            function loadSetup() {window.location.href = "./setup.htm";}    // Display setup page
+            function $id(name) {return document.getElementById(name);}      // Return an element by id
+            function hideCb(object, divName) {$id(divName).hidden = (object.checked == false);} // Hide div if checkbox not ticked
+</script>
+	</head>
+    <body onload="initAll(false);">
+        <div id="header" class="header">
+            <label id="serverName"></label>&nbsp;<label id="serverVersion"></label><br>
+        </div>
+        <div class="center">
+			<fieldset>
+				<legend data-i18n-key="simulation">Simulation</legend>
+                <br>
+                <label data-i18n-key="startTime">Start time:</label>&nbsp;<input type="number" id="startTimeHour" min="0" max="23" style="width:35px" onchange="changed(this);"/>&nbsp;:&nbsp;<input type="number" id="startTimeMinute" min="0" max="59" style="width:35px" onchange="changed(this);"/>
+                &nbsp;&nbsp;&nbsp;
+                <label data-i18n-key="endTime">End time:</label>&nbsp;<input type="number" id="endTimeHour" min="0" max="23" style="width:35px" onchange="changed(this);"/>&nbsp;:&nbsp;<input type="number" id="endTimeMinute" min="0" max="59" style="width:35px" onchange="changed(this);"/>
+                &nbsp;&nbsp;&nbsp;
+                <label data-i18n-key="cycleTime">Cycle time:</label>&nbsp;<input type="number" id="cycleTime" min="0.5" max="60" step="0.5" style="width:60px" onchange="changed(this);"/><br>
+                &nbsp;&nbsp;&nbsp;
+                <br>
+                <label data-i18n-key="globalLuminosity">Global luminosity:</label>&nbsp;<input type="number" id="globalLuminosity" min="0" max="100" value="100" style="width:60px" onchange="changed(this);"/><br>
+                <br>
+                <input type="button" class="blueBtn" style="width:175px" data-i18n-key="start" id="start" value="Start" onclick="changed(this);"/>
+                &nbsp;&nbsp;&nbsp;
+                <label id="currentTime"></label>
+                &nbsp;&nbsp;&nbsp;
+                <input type="button" class="blueBtn" style="width:175px" data-i18n-key="stop" id="stop"  value="Stop" onclick="changed(this);"/>
+                <br>
+            </fieldset>
+        </div>
+        <div class="center">
+			<fieldset>
+                <legend data-i18n-key="ledTest"><input type="checkbox" onchange="hideCb(this,'testDiv');"/>LED test</legend>
+                <div id="testDiv" hidden=true>
+                    <br>
+                    <label data-i18n-key="firstLed">First LED:</label>&nbsp;<input type="number" id="firstLed" min="1" max="2048" value="1" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="ledCount">LED count:</label>&nbsp;<input type="number" id="ledSize" min="1" max="33" value="1" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="luminosity">Luminosity:</label>&nbsp;<input type="number" id="luminosity" min="0" max="100" value="100" style="width:60px" onchange="changed(this);"/>
+                    <br><br>
+                    <input type="color" id="colorPicker" style="width:95%" value="#ffffff" oninput="colorChanged(this, 'redLevel', 'greenLevel', 'blueLevel');"/>
+                    <input type="hidden" id="colorPickerSerialized" value="0" />
+                    <br><br>
+                    <label data-i18n-key="redLevel">Red level:</label>&nbsp;<input type="number" id="redLevel" min="0" max="255" value="255" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="greenLevel">Green level:</label>&nbsp;<input type="number" id="greenLevel" min="0" max="255" value="255" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="blueLevel">Blue level:</label>&nbsp;<input type="number" id="blueLevel" min="0" max="255" value="255" style="width:60px" onchange="changed(this);"/>
+                    <br><br>
+                    <label data-i18n-key="flashOnMin">Min LED on time:</label>&nbsp;<input type="number" id="flashOnMin" min="1" max="65000" value="1" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="flashOffMin">Min LED off time:</label>&nbsp;<input type="number" id="flashOffMin" min="1" max="65000" value="1" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="flashRepeatMin">Min repeat count:</label>&nbsp;<input type="number" id="flashRepeatMin" min="0" max="65000" value="0" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="flashPauseMin">Min pause time:</label>&nbsp;<input type="number" id="flashPauseMin" min="1" max="65000" value="0" style="width:60px" onchange="changed(this);"/>
+                    <br>
+                    <label data-i18n-key="flashOnMax">Max LED on time:</label>&nbsp;<input type="number" id="flashOnMax" min="0" max="65000" value="0" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="flashOffMax">Max LED off time:</label>&nbsp;<input type="number" id="flashOffMax" min="0" max="65000" value="0" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="flashRepeatMax">Max repeat count:</label>&nbsp;<input type="number" id="flashRepeatMax" min="0" max="65000" value="0" style="width:60px" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="flashPauseMax">Max pause time:</label>&nbsp;<input type="number" id="flashPauseMax" min="0" max="65000" value="0" style="width:60px" onchange="changed(this);"/>
+                    <br><br>
+                    <label data-i18n-key="enableImmediateSend">Automatic send</label>&nbsp;<input type="checkbox" id="enableImmediateSend" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="enableClear">Clear LED before sending</label>&nbsp;<input type="checkbox" id="enableClear" onchange="changed(this);"/>
+                    &nbsp;&nbsp;&nbsp;
+                    <label data-i18n-key="enableFlash">Flash LED</label>&nbsp;<input type="checkbox" id="enableFlash" onchange="changed(this);"/>
+                    <br><br>
+                    <input type="button" class="blueBtn" style="width:175px" data-i18n-key="send" id="send" value="Send" onclick="changed(this);"/>
+                    <br>
+                </div>
+            </fieldset>
+        </div>
+        <div class = "center">
+            <fieldset>
+                <legend data-i18n-key="agendaFileUpdate"><input type="checkbox" onchange="hideCb(this,'uploadDiv');"/>Agenda file update</legend>
+                <div id="uploadDiv" hidden="true">
+                    <form id="upload" action="/upload" method="POST" enctype="multipart/form-data">
+                        <div>
+                            <input type="file" id="fileSelect" accept=".txt">
+                        </div>
+                    </form>
+                    <div id="fileDrag" data-i18n-key="dropAgendaHere">
+                        Drop agenda file here
+                    </div>
+                </div>
+            </fieldset>
+            <script src="dropFile.js"></script>
+            <div class="center">
+                <br>
+                <input type="button" class="blueBtn" style="width:175px" data-i18n-key="setup" value="Setup" onclick="loadSetup();"/>
+                &nbsp;&nbsp;&nbsp;
+                <input type="button" class="blueBtn" style="width:175px" data-i18n-key="edit" value="Edit" onclick="loadEdit();"/>
+            </div>
+        </div>
+        <div class="center">
+            <label id="wifiState"></label>
+            <br>
+            <label data-i18n-key="freeMemory"></label>&nbsp;<label id="freeMemory"></label>
+            &nbsp;&nbsp;&nbsp;<label data-i18n-key="largestChunk"></label>&nbsp;<label id="largestChunk"></label>
+            <br>
+            <label id="agendaState"></label>
+            <br>
+        </div>
+        <hr />
+        <div id="messages" class="largeScroll, center"></div>
+    </body>
+</html>
