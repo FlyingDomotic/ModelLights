@@ -306,13 +306,13 @@ Dans tous les cas, le nom du réseau et l'IP à utiliser sont affichés sur le p
 
 La page principale `/` ou `/index.htm` du serveur Web embarqué ressemble à :
 
-![](doc/MainPage.jpg)
+![](doc/MainPageFr.jpg)
 
 Elle est composée de plusieurs parties :
 
 #### L'entête
 
-![](doc/Header.jpg)
+![](doc/HeaderFr.jpg)
 
 On y trouve tout d'abord le nom du module sur la première ligne.
 
@@ -334,7 +334,7 @@ L'heure simulée est indiquée entre ces deux boutons. Elle est mise à jour en 
 
 #### Le cadre de test des LED
 
-![](doc/TestLed.jpg)
+![](doc/TestLedFr.jpg)
 
 L'intérieur de ce cadre n'est visible que si on coche la case `Test LED`.
 
@@ -354,7 +354,7 @@ La couleur se règle :
 
 - soit en cliquant sur la longue case entre les numéros de LED et les niveaux. Dans ce cas, l'affichage de la fenêtre de réglage des couleurs dépend du système utilisé pour interagir avec le serveur Web. Voici ce qu'une machine sous Windows (beurk ;-) montre :
 
-  ![](doc/Colors.jpg)
+  ![](doc/ColorsFr.jpg)
   
   On peut soit cliquer sur une couleur déjà définie dans
   la partie gauche, soit utiliser la souris dans le cadre droit pour
@@ -376,7 +376,7 @@ Noter que si la case `Envoi automatique` est cochée, les effets sur les LED ser
 
 #### Le cadre de mise à jour de la configuration
 
-![](doc/Upload.jpg)
+![](doc/UploadFr.jpg)
 
 Comme le cadre `Test des LED`, ce cadre n'est visible que si sa case est cochée.
 
@@ -393,7 +393,7 @@ Les éventuelles erreurs seront affichées dans le cadre de trace, l'état final
 
 #### Le cadre d'état
 
-![](/doc/Status.jpg)
+![](/doc/StatusFr.jpg)
 
 Ce cadre permet :
 
@@ -405,7 +405,7 @@ Ce cadre permet :
 
 #### Le cadre de trace
 
-![](doc/Log.jpg)
+![](doc/LogFr.jpg)
 
 Ce cadre contient la liste des traces émises par l'ESP, la dernière ligne affichée en haut de la liste.
 
@@ -415,7 +415,7 @@ Des explications sur les différents messages figurent au chapitre `Les traces g
 
 La page de paramétrage `/setup` du serveur Web embarqué ressemble à :
 
-![](doc/Parameters.jpg)
+![](doc/ParametersFr.jpg)
 
 La première ligne contient est un sélecteur `Langue` qui indique ... la langue utilisée pour l'affichage des pages de ce navigateur (bien vu, non ?).
 
@@ -462,7 +462,7 @@ La dernière partie contient la trace de trace déjà décrit plus haut.
 
 La page de paramétrage `/edit` du serveur Web embarqué ressemble à :
 
-![](doc/Edit.jpg)
+![](doc/EditFr.jpg)
 
 Elle permet de lister les fichiers présents sur l'ESP dans la partie gauche, de les modifier, supprimer, télécharger, d'en créer de nouveau vides ou à partir d'un fichier présent sur l'ordinateur ou le portable utilisé.
 
