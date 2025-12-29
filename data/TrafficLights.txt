@@ -1,0 +1,35 @@
+Rooms;First LED;LED count;Luminosity
+Light1Green;1;1;100
+Light1Orange;2;1;100
+Light1Red;3;1;100
+Light2Green;4;1;100
+Light2Orange;5;1;100
+Light2Red;6;1;100
+
+Groups;Room
+
+Colors;Red;Green;Blue
+Black;0;0;0
+Green;0;255;0
+Orange;255;128;0
+Red;255;0;0
+
+Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+
+Cycles;Room;Color;MinWaitTime;MaxWaitTime
+TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
+TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
+TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
+TrafficLight;Light1Orange;Orange;1000 # Turn light 1 orange on and wait for one second
+TrafficLight;Light1Orange # Turn light 1 orange off, without waiting
+TrafficLight;Light1Red;Red;2000 # Turn light 1 Red on and wait for 2 seconds
+TrafficLight;Light2Red; # Turn light 2 Red off, without waiting
+TrafficLight;Light2Green;Green;5000 # Turn light 2 Green on and wait for 5 seconds
+TrafficLight;Light2Green # Turn light 2 Green off, without waiting
+TrafficLight;Light2Orange;Orange;1000 # Turn light 2 orange on and wait for one second
+TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
+TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
+TrafficLight;Light1Red # Turn light 1 Red off, without waiting
+
+Date;Room;Color;Luminosity
+00:00;TrafficLight;1

@@ -4,9 +4,546 @@
 
 # <a id="english">English version</a>
 
-English version is under construction...
+## Presentation
 
-Stay tuned!
+This application drives a (large) set of LED giving a predefined scenario.
+
+It has been specially developed to light a complex model, with dozen of lighting points.
+
+In order to considerably reduce cabling, we used individually addressed LED ribbons (like NeoPixels), inserted into model, making links between elements with only 3 wires : a power (+5V and common ground) and a command wire.
+
+Due to very low cost of these ribbons (few bucks for 150 LED over a 5 meters ribbon), we decided too "loose" few LED to make links between floors, instead of link ribbons between them with wires, to suppress false contacts risk.
+
+You can find these ribbons with 30, 60 and even 144 LED per meter, which allows interesting light density...
+
+It's even not forbidden to use it over models, to simulate day light in a dark room.
+
+Base idea is to present to spectators ue simulation cycle over a limited (short) period (for example a full day in 7 minutes). If cycle is too long, they will leave.
+
+Time is managed by an agenda, which indicates time (hours and minutes) we should activate (or deactivate) the following 3 types of elements :
+
+- fixed, where lights stay in the same stare during specified agenda time. For example, turn room light on at 7PM, and off at 10:15PM,
+- flashes which are turned on and off at regular interval. For example, turned on for a second, and off for half a second,
+- cycles, used in complex sequences of lighting, like traffic lights.
+
+Flashes and cycles can be defined on fixed or random base. Random base can be used for example to simulate arc welding. Durations are specified in milliseconds, allowing short and quick actions.
+
+It's possible to set a global luminosity (to adapt lighting to the room luminosity where models are installed) and individually (to reduce room light level if over lighted).
+
+Application run on an ESP8266, either connected to an existing WiFi network, or creating its own network (through a local access point). Settings are done through an embedded web server, which also allows LED positioning, color and flashes real time tests. Messages are displayed on web interface, but can also be sent to a `syslog` server.
+
+Application is autonomous and is able to run without external action nor connection, using last known parameters. You just have to power ESP on.
+
+This document will now detail configuration files structure and content, easier to use to load large amounts of data than Web interface.
+
+Web interface will be detailed then.
+
+## Data description
+
+As previously seen, light related data is written to a file.
+
+It's possible to load multiple configuration files in ESP, a drop down list in parameters page is used to select the one to run.er.
+
+File names is let to users' needs, but file type should be `.txt`.
+
+We've got 6 data types, leading to 6 concepts and 6 file sub-parts in configuration file:
+
+- Rooms, associating LED to a location,
+- Groups, merging rooms,
+- Colors, describing used colors,
+- Cycles, describing cyclic series of lighting (like traffic lights),
+- Flashes, flashing...
+- Agenda, driving rooms, groups, cycles and flashes activation and deactivation giving a simulation time.
+
+Internal format is CSV type (values are separated by ";").
+
+Each kind of data is starting by a header, allowing to structure data/
+
+Edition can be done by a spreadsheet application (LibreOffice, OpenOffice, even Excel for the most courageous ;-) or with a simple text editor (like NotePad++ or equivalent).
+
+Each part is separated of the next one by an empty line.
+
+It's possible to add comments in file. These comments should be put at end of line, and start by the `#`. Note that everything following comment on the line will simply be ignored.
+
+If you don't specify some zones, application will use default value (often 0, but not systematically : for example, luminosity is set to 100% by default).
+
+Empty lines are ignored.
+
+Sub-parts can be defined in any order, as long as a line don't reference not yed defined data.
+
+As recommendation, using in this order `Rooms`, `Groups`, `Colors`, `Flashes`, `Cycles` and `Agenda` will lake it.
+
+Headers of empty sections can be omitted.
+
+Here's an example of empty file:
+```
+Rooms;First LED;LED count;Luminosity # Header fr rooms
+
+Groups;Room # Header for groups
+
+Colors;Red;Green;Blue # Header for colors
+Black;0;0;0 # Black color as first color
+
+Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause # Header for flashes
+
+Cycles;Room;Color;MinWaitTime;MaxWaitTime # Header for cycles
+
+Date;Room;Color;Luminosity # Header for agenda
+
+```
+FYI, only first zone of each header is tested (and should be identical to this example). It's possible to modify all other header fields to match your requirements.
+
+Note that accents encoding varies giving operating systems. It may be judicious not using them into configuration files, their display may be fun ;-)
+
+### Rooms
+
+They define LED concerned by a room
+
+You should indicate number of first concerned LED, count of LED in the room and relative room luminosity. If luminosity is not specified, default value will be 100%.
+
+As example, here's part of defining 6 LED used to simulate 2 traffic lights:
+```
+Rooms;First LED;LED count;Luminosity
+Light1Green;1;1;100
+Light1Orange;2;1;100
+Light1Red;3;1;100
+Light2Green;4;1;100
+Light2Orange;5;1;100
+Light2Red;6;1;100
+
+```
+Note that a LED can be included in multiple rooms.
+
+### Groups
+
+They merge some rooms under a given name (to define a building for example). You can also use them to group series of non contigous LED.
+
+You have to give each concerned room under the same group name.
+
+For example:
+```
+Groups;Room
+#Define "Right corner" group based on room 1, 2, 8 and 9
+Right corner:R1
+Right corner:R2
+Right corner:R8
+Right corner:R9
+
+```
+Note that a room can be part of multiple groups.
+
+### Colors
+
+Indicates, under a given name, red, green and blue level (from 0 to 255) to give to light.
+
+As first color is used to turn LED off, it may be judicious to define it to `Black` (0,0,0).
+
+For example:
+```
+Colors;Red;Green;Blue
+Black;0;0;0
+Green;0;255;0
+Orange;255;128;0
+Red;255;0;0
+
+```
+### Cycles
+
+They allow to program sequences for turning light on and off, in any order, giving any color, and with a different duration between each change. Traffic lights are good example.
+
+You have to give cycle name, room name, color to set, time (milliseconds) to wait before next step and optionally a high limit for (random) wait.
+
+For example, to define a traffic lights with 2 directions (Light1 for a direction and light 2 for the perpendicular one), you may specify it as:
+```
+Cycles;Room;Color;MinWaitTime;MaxWaitTime
+TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
+TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
+TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
+TrafficLight;Light1Orange;Orange;1000 # Turn light 1 orange on and wait for one second
+TrafficLight;Light1Orange # Turn light 1 orange off, without waiting
+TrafficLight;Light1Red;Red;2000 # Turn light 1 Red on and wait for 2 seconds
+TrafficLight;Light2Red; # Turn light 2 Red off, without waiting
+TrafficLight;Light2Green;Green;5000 # Turn light 2 Green on and wait for 5 seconds
+TrafficLight;Light2Green # Turn light 2 Green off, without waiting
+TrafficLight;Light2Orange;Orange;1000 # Turn light 2 orange on and wait for one second
+TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
+TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
+TrafficLight;Light1Red # Turn light 1 Red off, without waiting
+
+```
+If color is not defined, we'll use first line of `Colors` (explaining why it may be judicious to define it to `Black`). If `MinWaitTime` is not specified, we'll use 0. Same thing for `MaxWaitTime`
+
+if `MaxWaitTime` is defined, wait time will be a random time between `MinWaitTime` and `MaxWaitTime`.
+
+Don't forget ti activate `TrafficLight` cycle in agenda (as described later, using:
+```
+Date;Room;Color;Luminosity
+00:00;TrafficLight;1 #Activate "TrafficLight" cycle at midnight.
+
+```
+We can then group all this data into a `TrafficLight.txt` containing:
+```
+Rooms;First LED;LED count;Luminosity
+Light1Green;1;1;100
+Light1Orange;2;1;100
+Light1Red;3;1;100
+Light2Green;4;1;100
+Light2Orange;5;1;100
+Light2Red;6;1;100
+
+Groups;Room
+
+Colors;Red;Green;Blue
+Black;0;0;0
+Green;0;255;0
+Orange;255;128;0
+Red;255;0;0
+
+Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+
+Cycles;Room;Color;MinWaitTime;MaxWaitTime
+TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
+TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
+TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
+TrafficLight;Light1Orange;Orange;1000 # Turn light 1 orange on and wait for one second
+TrafficLight;Light1Orange # Turn light 1 orange off, without waiting
+TrafficLight;Light1Red;Red;2000 # Turn light 1 Red on and wait for 2 seconds
+TrafficLight;Light2Red; # Turn light 2 Red off, without waiting
+TrafficLight;Light2Green;Green;5000 # Turn light 2 Green on and wait for 5 seconds
+TrafficLight;Light2Green # Turn light 2 Green off, without waiting
+TrafficLight;Light2Orange;Orange;1000 # Turn light 2 orange on and wait for one second
+TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
+TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
+TrafficLight;Light1Red # Turn light 1 Red off, without waiting
+
+Date;Room;Color;Luminosity
+00:00;TrafficLight;1
+
+```
+### Flashes
+
+They allow to flash lights at regular (or not) interval.
+
+Note that after a flash, previous LEd color and intensity is restored.
+
+You have to specify flash name, minimal light on, light off and pause between sequences in milliseconds, as well as count of repetition. You may also specify random values giving `Max` value in addition to `Min`.
+
+for example, and minimum activation time of 10 and a maximum of 100 will produce a random value between 10 and 100 (inclusive) at each activation.
+
+To get a flash every seconds, use :
+```
+Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+Flash 1;R1;White;1;0;0;0;1;0;1000;0
+
+```
+
+For 3 short (1 ms) flashes followed by a one second wait, use:
+```
+Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+Flash 2;R1;White;1;0;1;0;3;0;1000;0
+
+```
+An arc welding simulation can be as:
+```
+Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+Arc Welding;R1;White;10;30;5;20;5;30;20;5000
+
+```
+Well get a flash with a duration between 10 and 30 ms, followed by a return to previous color during 5 to 20 ms, repeated between 5 to 30 times, with a pause between 20 ms and 5 seconds.
+
+You may want to test other values with web interface.
+
+### Agenda
+
+It allows to specify activation and deactivation of rooms, groups, flashes or cycles at a given simulation time.
+
+For rooms and groups, you have to specify simulation time, room or group name, color and luminosity. If color is not given, first line of color list will be used. If intensity is not given, 100 will be used.
+
+For cycles and flashes, you have to give simulation time, cycle or flash name, and an activation flag (O= not activated, not null value = activated). If activation flag is not specified, we'll use zero (deactivated).
+
+For example:
+```
+Date;Room;Color;Luminosity
+06:00;Flash 1 # Deactivate flash 1 at 6AM (it's activated at 8PM)
+09:30;Arc Welding;1 # Activate "Arc Welding" flash at 9:30AM
+10:00;Arc Welding # Deactivate "Arc Welding" flash at 10AM
+11:00;Arc Welding;1 # Activate "Arc Welding" flash at 11AM
+12:00;Arc Welding # Deactivate "Arc Welding" flash at noon
+18:30;P1;White # Light room 1 in white at 6:30PM
+18:45;P2;White;80 # Light room 2 in white at 80% at 6:45PM
+19:00;P3;Yellow # Light room 3 in yellow at 7PM
+20:00;P2;White # Light room 2 in white at 100% at 8PM
+20:00;Flash 1;1 # Activate flash 1 at 8PM
+22:30;P3 # Turn room 3 off at 10:30PM
+23:00;P1 # Turn room 1 off at 11PM
+23:00;P2 # Turn room 2 off  at 11PM
+
+```
+## Embedded Web server
+
+Interaction between user and ESP is done through an embedded web server, using a browser from a smart-phone or a computed.
+
+Address to use depend on parameters given by user.
+
+In most common case, where module is not connected to an existing WiFi, you have to connect smart-phone or computer to module internal access point (with default values, it's named `ModelLibghts_xxxxxx` where `xxxxxx` is last 6 characters of ESP MAC address). You have to connect then by `http://192.168.4.1/`
+
+If you gave a WiFi SSID (which has been joined in the first 10 seconds of module life), you'll be connected to this network, and IP given by this network's router.
+
+In all cases, network name and IP to use will be written on USB ESP console port at start.
+
+### Main page
+
+Embedded web server main page `/` or `/index.htm` looks like:
+
+![](doc/MainPage.jpg)
+
+It has few parts:
+
+#### Header
+
+![](doc/Header.jpg)
+
+First line contains module's name.
+
+`Simulation` frame contains ... simulation data (not so common, isn't it? ;-)
+
+You'll find here simulation starting and ending time. Normally, you should have `00:00` and `23:59`, but it's possible though these zones to reduce interval, either to only show part of day, or finely debug complicated changes.
+
+As soom as times are specified, you should indicate simulation cycle duration, in minutes.
+
+Note that reducing interval will sensibly slow it down.
+
+As starting point, duration between 5 to 10 minutes seems reasonable.
+
+Next line is used to set global LED luminosity, to adapt it to presentation's room light (in principle, we reduce global luminosity in black).
+
+We start and stop simulation with buttons of same name.
+
+Simulated time is displayed between these two buttons. It's updated in real time when simulation is active.
+
+#### LED test frame
+
+![](doc/TestLed.jpg)
+
+Frame contents is displayed only when `LED test` is ticked.
+
+As you can imagine, it allows to test LED (and flashes).
+
+It allows to turn light on (giving a color) or off (giving black as (0,0,0) a continuous series of LED (useful to identify LED in a room), using a given color (useful to calibrate colors giving ribbon or room wall color) with a given luminosity (useful to calibrate a room with multiple LED).
+
+You have to give first LED number to use into `First LED` (ribbon first LED is number #1), specify number of LED to use into `LED count` and luminosity into `Luminosity`. Not so complicated?
+
+If `Automatic send` is ticked, actions will be executed immediately after changing these zones. If not, you have to click on `Send` to send commands to LED.
+
+if `Turn off all LED before sending` is ticked, all LED will be turned off before applying requested changes. Else, not concerned LED will keep their last state.
+
+Color is set:
+
+- either giving values (between 0 and 255) into `Red level`, `Green level` et `Blue level` in corresponding zones,
+
+- or clicking on the long box between LED numbers and color levels. In this case, an operating system depending window will appear. Here's, for example, what a Windows machine will show:
+
+  ![](doc/ColorsFr.jpg)
+  
+  You can either click on an existing color already defined on left, or use mouse on right to select color, setting saturation on rightest position from white (top) to black (bottom) to maximum color (middle).
+
+Note that if `Automatic send` is ticked, effects on LED will be immediately done, which avoids validating color, clicking on `Send` and going back on color selection.
+
+The 2 following lines allows to define flash parameters.
+
+Zones `LED on time`, `LED off time`, `Repeat count` and `Pause time` are prefixed by `Min` on the first line and `Max` on the second.
+
+When `Max` values are defined, `Min` and `Max` values are defining random limits that should be used. If they're not defined (or lower than `Min`), `Min` corresponds to fixed value to be used (no random part).
+
+`Flash lights` should be ticked to flash LED (else they will stay fixed).
+
+Note that if `Automatic send` is ticked, effects on LED will be immediate, each modification will reinitialize flash cycle.
+
+#### Configuration file update
+
+![](doc/Upload.jpg)
+
+As `LED test` frame, this frame is only visible if ticked.
+
+You can use it to load a configuration file (previously described).
+
+It's possible to indicated file:
+
+- either clicking on `Browse...`, then select file in dialog box that will open,,
+- or drag & drop file on `Drop configuration file here` frame.
+
+File will then be uploaded into ESP, and analyzed.
+
+Errors will be displayed in trace frame, final state displayed in status frame.
+
+#### Status frame
+
+![](/doc/Status.jpg)
+
+This frame allows to :
+
+- display parameters page clicking on `Setup` (see here under),
+- display file editor clicking on `Edit` (see here under again),
+- display a line giving WiFi state (local access point or existing WiFi) and ESP IP address,
+- display a line with available memory and size of largest block,
+- display a line giving status of last configuration file loading (`<Configuration file name> loaded` if no error, error messages else).
+
+#### Trace frame
+
+![](doc/Log.jpg)
+
+This frame contains list of ESP sent traces, last on top of frame.
+
+Explanations on different messages can be found on `System generated traces` chapter.
+
+### System settings page
+
+Settings page web server `/setup` looks like:
+
+![](doc/Parameters.jpg)
+
+First line contains a drop down selector `Language` indicating ... language to be used to display this page (well done, no?).
+
+If browser supports French, we'll use French. Else , we'll automatically switch to English.
+
+Note that language used by server is defined at compilation time.
+
+`Configuration file` drop down allows to select configuration file to be used. It shows available configuration files available on this ESP.
+
+Next line is used to define ribbon characteristics:
+
+- Used `LED count`,
+- `LED pin ` where command wire is connected to. Warning, value given here is GPIO number (different of `Dn` indication painted on circuit). FYI, on an ESP8266, we have : D0 = GPIO16, D1 = GPIO5, D2 = GPIO4, D3 = GPIO0, D4 = GPIO2, D5 = GPIO14, D6 = GPIO12, D7 = GPIO13, D8 = GPIO15). For example, if ribbon is connected on D2 index, you should indicate 4 (which is the corresponding GPIO,
+- `LED type` (RGB , RBG, GRB, GBR, BRG, BGR). To determine ribbon type, use `Test LED` frame, set color to (255, 0, 0). If nothing happens (meaning that `Automatic send` is not ticked), click on `Send`. Have a look to first LED. If red, use `R` as first character, green use `G`, and blue `B`. Set then color to (0, 255, 0) and determine the second character the same way. Choose then type starting with these 2 characters in the list,
+- `LED frequency`, which can be set to 400 kHz or 800 kHz. If no LED show up after clicking on `Send`, change value.
+
+A message will ask you to restart ESP in order to activate these changes.
+
+Next frame describe ESP network parameters:
+
+- `WiFi SSID` indicates existing WiFi SSID to connect module to. If not defined, or can't be connected during the first 10 seconds of module life, we'll switch to local ESP access point,
+- `Password` indicates password associated to preceding WiFi SSID, if it has one,
+- `Access Point password` indicates password to be used with the ESP locally created local access (which won't be protected if let empty),
+- `Module name` specifies network name given to module (to distinguish other modules, if needed).
+
+Following frame gives information to be used if you want to send trace to a `syslog` server:
+
+- `Syslog server` gives name or IP address of server (empty, no `syslog` will be used),
+- `Syslog port` gives port number to use (514 by default).
+
+Then we have flags used to control message types to display/send. They're all used to debug:
+
+- `Display routing entering` is used to display names of main routines when entered,
+- `Display debug messages` makes what we think it will,
+- `Display verbose messages` add ore messages to the trace,
+- `Display Java traces` display traces of JavaScript messages,
+- `Send traces to syslog` allows to send trace to `syslog` server.
+
+`Restart` button is used to ... restart module (still well done!). It's useful when modifying a parameter needing rebooting ESP (like parameters linked to LED or WiFi).
+
+Last part contains trace already explained before.
+
+### Managing embedded files
+
+`/edit` embedded files management page looks like:
+
+![](doc/Edit.jpg)
+
+It displays list of file on ESP in the left part, allows to modify, delete, download files, create an empty file or load a file from computer or smart-phone.
+
+To be used on request.
+
+## System geTrafficLightnerated traces
+
+System generates more or less traces (depending on setting previously explained).
+
+These traces are coming from two sources: ESP and browser.
+
+### ESP traces
+
+Tehse rare traces sent by ESP itself, to indicate its state and report errors it may encounter. We have:
+
+#### Configuration file analysis traces
+
+As already explained, ESP analyze configuration file when it starts, and after each file download.
+
+It's possible to detect incoherences during this analysis. They'll be signaled by a message giving information on the issue. Displaying an error will stop analysis and prohibit simulation activation (but will let LED test and new configuration file download).
+
+In following text, variable parts will be included within `< >`. For example, `<line number>` will be replaced by the corresponding file line number.
+
+We'll find:
+
+- `Can't open file <file name>`: problem opening file,
+- `Bad file header <header line> in <file name>`: first line of file part seems not to be valid, should be `Agenda`, `Rooms`, `Colors`, `Cycles`, `Groups` ou `Flashes`,
+- `File missing for <file name>`: file has not been found,
+- `<header type> header already defined in <file name>, before line <line number>`: a type of header is defined twice in the file, second time at a given line,
+- `Bad field count (<field count>) line <line number> of <file name>`: a line has either less fields than minimum required, or more than the maximum allowed,
+- `Illegal number <number> field <field number> line <line number> of <file name>`: a value is illegal for a field,
+- `Out of range <value> field <field number> line <line number> of <file name>`: a value is out of allowed range,
+- `Room <room name> not found line <line number> of <file name>`: room (group, cycle or flash) not found,
+- `Color <color name> not found line <line  number> of <file name>`: color not found,
+- `Illegal time <time>, field <field number> line <line number> of <file number>`: an illegal time has been given,
+- `Incorrect ending LED <led number>, line <line number> of <file name>`: LED number (computed from first LED and LED count) is out of ribbon,
+ -`Unknown error <error number>, file <file name>, line <line number>, integer <integer value>, string <string value>`: an unknown error has bed detected, all parameters are displayed. Please forward data to developer.
+
+#### Simulation execution traces
+
+Program sends some messages to inform user about certain changes.
+
+Main are:
+
+- `Agenda <agenda line number>, now <simulation time>`: activation of a line of agenda at given simulation time. Allow to follow whre we're in simulation and which line(s) will be executed,
+- `Going from <ending time> to <staring time>`: loops at end of simulation to start of simulation,
+- `LED <first LED> to <last LED> set to (<red>, <green>, <blue>) (A<agenda line number>R<room line number>C<cycle line number>)`: Set LED to specific color giving agenda, room and cycle line number,
+ - `LED <first LED> to <last LED> set to (<red>, <green>, <blue>) (A<agenda line number>G<group line number>R<room line number>C<cycle line number>)`: Set LED to specific color giving  agenda, group and cycle line number, 
+- `LED <first LED> to <last LED> set to (<red>, <green>, <blue>) (F<flash line number>R<room line number>)`: Set LED to specific color giving flash and room number,
+- `LED <first LED> to <last LED> set to <previous color> (F<flash line number>R<room line number>)`:  Set LED to previous color giving flash and room number,
+- `LED <first LED> to <last LED> set to (<red>, <green>, <blue>), flash <flash flag> (User)`: Set LED to specific color, with (or without) flash,
+- `LED <first LED> to <last LED> set to ((<red>, <green>, <blue>) for <duration> ms (S<sequence line number>R<room line number>C<cycle line number>)`: Set LED to specific color giving sequence, room and cycle line number) for a given duration, 
+- `Agenda flag %d line <agenda line number> is unknown`: an illegal flag as been seen, please forward to developer,
+- `Agenda <agenda line number>, cycle <cycle number> active` (or inactive): a cycle has been (de)activated by agenda,
+- `Agenda <agenda line number>, flash <flash number> active` (or inactive): a flash has been (de)activated by agenda,
+- `Luminosity <global luminosity>`: global luminosity has been changed,
+- `Clearing all lights`: all LED have been turned off,
+- `Can't find cycle <cycle number> sequence <sequence number>, ignored`: an illegal cycle/sequence number has been detected. Please forward to developer. 
+
+#### Other traces
+
+Other messages can been sent. It's possible to complain to developer if they're not sufficiently clear ;-)
+
+### Browser traces
+
+In addition to traces generated by server, other errors can be generated by browser and be displayed in trace frame.
+
+In particular, Java traces, if they're activated, and fatal errors when occurring in browser.
+
+## Web server supported requests
+
+Embedded web server answer to the following URL:
+
+- `/` : display home page,
+- `/status` : returns program state as JSON data,
+- `/setup` : display setup page,
+- `/settings` : returns parameters as JSON data,
+- `/configs` : returns configuration file list,
+- `/debug` : returns internal variables to debug,
+- `/log` : returns last saved log lignes,
+- `/edit` : manages and edit file system,
+- `/tables` : returns internal tables content,
+- `/rest/restart` : restarts ESP,
+- `/command/enable/enter` : arms `Display routing entering` flag,
+- `/command/enable/debug` : arms `Display debug messages` flag,
+- `/command/enable/verbose` : arms `Display verbose messages` flag,
+- `/command/enable/java` : arms `Display Java traces` flag,
+- `/command/enable/syslog` : arms `Send traces to syslog` flag,
+- `/command/disable/enter` : disarms `Display routing entering` flag,
+- `/command/disable/debug` : disarms `Display debug messages` flag,
+- `/command/disable/verbose` : disarms `Display verbose messages` flag,
+- `/command/disable/java` : disarms `Display Java traces` flag,
+- `/command/disable/syslog` : disarms `Send traces to syslog` flag,
+- `/languages` : Returns supported languages list,
+- `/changed` : change value of a variables (internal use),
+- `/upload` : upload a file (internal use).
 
 # <a id="france">Version française</a>
 ## Présentation
@@ -28,20 +565,16 @@ iront.
 
 La gestion du temps est gérée par l'agenda, qui indique à quelle heure (simulée) on active ou on désactive les 3 types d'éléments suivants :
 
-- fixe, où l'état de l'éclairage reste fixe pendant la durée spécifiée
-  dans l'agenda. Par exemple, allumer la pièce à 19:00 et l'éteindre à
+- fixe, où l'état de l'éclairage reste fixe pendant la durée spécifiée dans l'agenda. Par exemple, allumer la pièce à 19:00 et l'éteindre à
   22:15,
-- flashs et clignotants qui flashent/clignotent à intervalle régulier.
-  Par exemple allumé pour une seconde, éteint pour 0,5 secondes,
-- cycles, utilisés pour les séquences d'allumage complexes. Par exemple
-  les feux de circulation ou les chenillards.
+- flashs et clignotants qui flashent/clignotent à intervalle régulier. Par exemple allumé pour une seconde, éteint pour 0,5 secondes,
+- cycles, utilisés pour les séquences d'allumage complexes. Par exemple les feux de circulation ou les chenillards.
 
 Flash, clignotants et cycles peuvent être définis sur des durées constantes ou aléatoires dans certaines limites. Ces aléas sont utiles par exemple pour simuler des éclairs de soudage à l'arc. Ces durées sont spécifiées en millisecondes, ce qui permet des actions extrêmement courtes ou rapides.
 
 Il est possible de régler l'intensité maximale de l'éclairage globalement (pour l'adapter à la luminosité de la pièce où la maquette est installée) et individuellement (pour réduire le niveau de lumière d'une pièce sur éclairée).
 
-L'application fonctionne sur un ESP8266, qui peut soit se connecter sur un réseau WiFi existant, soit créer son propre réseau Wifi. Le paramétrage s'effectue au travers d'un serveur Web embarqué, qui
-permet également de trouver le positionnement des LED et tester des couleurs, clignotants ou flashs en temps réel. Les messages sont affichés sur l'interface Web, et peuvent également être envoyés sur un serveur `syslog`.
+L'application fonctionne sur un ESP8266, qui peut soit se connecter sur un réseau WiFi existant, soit créer son propre réseau Wifi. Le paramétrage s'effectue au travers d'un serveur Web embarqué, qui permet également de trouver le positionnement des LED et tester des couleurs, clignotants ou flashs en temps réel. Les messages sont affichés sur l'interface Web, et peuvent également être envoyés sur un serveur `syslog`.
 
 L'application est autonome et sait fonctionner sans action extérieure ni connexion, en utilisant les derniers paramètres connus. Il suffit juste de la mettre l'ESP sous tension.
 
@@ -74,7 +607,7 @@ Cette édition peut être faite avec un tableur (LibreOffice, OpenOffice, voire 
 
 Chaque partie est séparée de la suivante par une ligne vide.
 
-Il est possible d'ajouter des commentaires dans le fichier, histoire de s'y retrouver. Ces commentaires doivent figurer en fin de ligne, et débuter par le caractère  # . Noter que tout ce qui suit le commentaire sur la même ligne sera simplement ignoré.
+Il est possible d'ajouter des commentaires dans le fichier, histoire de s'y retrouver. Ces commentaires doivent figurer en fin de ligne, et débuter par le caractère `#`. Noter que tout ce qui suit le commentaire sur la même ligne sera simplement ignoré.
 
 Certaines zones peuvent ne pas être spécifiées. Dans ce cas, on utilisera des valeurs par défaut (généralement 0, mais pas systématiquement : par exemple, la luminosité est mise à 100 par défaut).
 
@@ -183,7 +716,7 @@ Croisement;Feu2Rouge;Rouge;2000 #Allume le feu 2 en rouge et attend 2 secondes
 Croisement;Feu1Rouge #Éteint le feu 1 rouge, sans attente après l'extinction
 
 ```
-Si la couleur n'est pas définie, on utilise la première couleur de la liste `Couleurs` (d'où l'intérêt de la définir à `Noir`. Si l'attente n'est pas définie, on utilise 0. Pareil pour `attente max`
+Si la couleur n'est pas définie, on utilise la première couleur de la liste `Couleurs` (d'où l'intérêt de la définir à `Noir`). Si l'attente n'est pas définie, on utilise 0. Pareil pour `attente max`
 
 Si "Attente max" est définie, le temps d'attente utilisé sera une valeur aléatoire comprise ente `Attente` et `Attente max`.
 
@@ -356,11 +889,7 @@ La couleur se règle :
 
   ![](doc/ColorsFr.jpg)
   
-  On peut soit cliquer sur une couleur déjà définie dans
-  la partie gauche, soit utiliser la souris dans le cadre droit pour
-  sélectionner sa couleur, en utilisant le curseur à l'extrême droite
-  pour régler le niveau de saturation, du blanc (en haut) au noir (en
-  bas) en passant par la couleur maximale (au milieu).
+  On peut soit cliquer sur une couleur déjà définie dans la partie gauche, soit utiliser la souris dans le cadre droit pour sélectionner sa couleur, en utilisant le curseur à l'extrême droite pour régler le niveau de saturation, du blanc (en haut) au noir (en   bas) en passant par la couleur maximale (au milieu).
 
 Noter que si la case `Envoi automatique` est cochée, les effets sur les LED seront immédiats, ce qui évite des allers/retours entre le choix de la couleur et le bouton `Envoyer`.
 
@@ -397,11 +926,11 @@ Les éventuelles erreurs seront affichées dans le cadre de trace, l'état final
 
 Ce cadre permet :
 
-- D'afficher la page de paramètres en cliquant sur le bouton `Paramètres` (voir ci-dessous),
-- D'afficher la page de l'éditeur de fichiers en cliquant sur le bouton `Éditeur` (voir ci-dessous),
-- D'afficher une ligne indiquant l'état du WiFi (point d'accès local ou WiFi existant) et l'adresse IP de l'ESP,
-- D'afficher une ligne indiquant la mémoire disponible, et la taille du plus gros bloc (déverminage),
-- D'afficher une ligne indiquant le résultat du dernier chargement des fichiers paramètres (<Nom du fichier de configuration> chargé si pas d'erreur, message d'erreur sinon).
+- d'afficher la page de paramètres en cliquant sur le bouton `Paramètres` (voir ci-dessous),
+- d'afficher la page de l'éditeur de fichiers en cliquant sur le bouton `Éditeur` (voir ci-dessous),
+- d'afficher une ligne indiquant l'état du WiFi (point d'accès local ou WiFi existant) et l'adresse IP de l'ESP,
+- d'afficher une ligne indiquant la mémoire disponible, et la taille du plus gros bloc (déverminage),
+- d'afficher une ligne indiquant le résultat du dernier chargement des fichiers paramètres (`<Nom du fichier de configuration> chargé` si pas d'erreur, message d'erreur sinon).
 
 #### Le cadre de trace
 
@@ -456,11 +985,11 @@ Viennent ensuite des indicateurs utilisés pour contrôler les types de message 
 
 Le bouton `Relancer` permet de ... relancer le module (encore bien vu!). Il est utile lorsqu'on modifie un paramètre qui nécessite un redémarrage (comme tout ce qui touche aux caractéristiques du ruban ou aux réglages du WiFi).
 
-La dernière partie contient la trace de trace déjà décrit plus haut.
+La dernière partie contient la trace déjà décrite plus haut.
 
 ### La page de gestion des fichiers embarqués
 
-La page de paramétrage `/edit` du serveur Web embarqué ressemble à :
+La page de gestion des fichiers embarqués `/edit` du serveur Web embarqué ressemble à :
 
 ![](doc/EditFr.jpg)
 
@@ -482,7 +1011,7 @@ Ce sont les traces émises par l'ESP lui même, pour indiquer son état et repor
 
 Comme déjà expliqué, l'ESP analyse les fichiers de configuration pendant son lancement, et après chaque téléchargement de fichier.
 
-Il est possible qu'il détecte des incohérences pendant cette analyse. Il les signalera pas un message donnant des informations sur le problème. L'affichage d'une erreur provoquera l'arrêt de l'analyse, et empêchera l'activation de la simulation (mais laissera la possibilité d'utiliser le test des LED, et le chargement de nouveaux fichiers).
+Il est possible qu'il détecte des incohérences pendant cette analyse. Il les signalera par un message donnant des informations sur le problème. L'affichage d'une erreur provoquera l'arrêt de l'analyse, et empêchera l'activation de la simulation (mais laissera la possibilité d'utiliser le test des LED, et le chargement de nouveaux fichiers).
 
 Dans ce qui suit les parties variables sont précisées entre `< >`. Par exemple, `<numéro de ligne>` sera remplacé par le numéro de ligne du fichier concerné.
 
@@ -491,7 +1020,7 @@ On trouvera :
 - `Ne peut ouvrir <nom de fichier>` : problème lors de l'ouverture du fichier,
 - `Entête <entête du fichier> incorrecte dans <nom du fichier>` : la première ligne du fichier ne semble pas être une entête correcte. L'entête est testée sur sa première zone, qui doit être `Agenda`, `Pieces`, `Couleurs`, `Cycles`, `Groupes` ou `Flashs`,
 - `Fichier <nom du fichier> manquant` : le fichier n'a pas pu être trouvé,
-- `Zones <type de zone> déjà définie avant <nom de fichier>` : un fichier a déjà défini le type de zone avant qu'on lise le fichier courant. Dit autrement, <type de zone> est défini deux fois dans le fichier,
+- `Zones <type de zone> déjà définie dans <nom de fichier> avant la ligne <numéro de ligne>` : un même type de zone est défini deux fois dans le fichier, la seconde sur la ligne spécifiée,
 - `Nb zones (<nombre de zones>) incorrect ligne <numéro de ligne> de <nom de fichier>` : le nombre de zones de la ligne est incorrect (soit inférieur au nombre minimum de zones demandées, soit supérieur au nombre maximum de zones définies),
 - `Valeur <valeur donnée> incorrecte, zone <numéro de zone>, ligne <numéro de ligne> de <nom de fichier>` : la valeur donnée pour la zone n'est pas celle attendue,
 - `Valeur <valeur donnée> hors limite, zone <numéro de zone>, ligne <numéro de ligne> de <nom de fichier>` : la valeur donnée est hors des limites imposées,
@@ -548,7 +1077,7 @@ Le serveur Web embarqué répond aux URL suivantes :
 - `/command/enable/enter` : arme l'indicateur `Affichage des entrées de routines`,
 - `/command/enable/debug` : arme l'indicateur `Affichage des messages de déverminage`,
 - `/command/enable/verbose` : arme l'indicateur `Affichage des messages verbeux`,
-- `/command/enable/java` : arme l'indicateur Affichage des traces Java,
+- `/command/enable/java` : arme l'indicateur `Affichage des traces Java`,
 - `/command/enable/syslog` : arme l'indicateur `Envoi des traces à syslog`,
 - `/command/disable/enter` : désarme l'indicateur `Affichage des entrées de routines`,
 - `/command/disable/debug` : désarme l'indicateur `Affichage des messages de déverminage`,

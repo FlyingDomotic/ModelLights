@@ -1,10 +1,4 @@
-#define VERSION "25.12.27-1"
-
-#define FRENCH_VERSION
-#define DUMP_TABLES
-//#define SERIAL_FLUSH
-//#define TRACE_SEQUENCE
-//#define TRACE_FLASH
+#define VERSION "25.12.28-1"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -146,10 +140,10 @@ int lastUploadStatus = 0;                                           // HTTP last
 String ssid;                                                        // SSID of local network
 String pwd;                                                         // Password of local network
 String accessPointPwd;                                              // Access point password
-#ifdef FRENCH_VERSION
+#ifdef VERSION_FRANCAISE
     String espName = "Eclairage";                                   // Name of this module
 #else
-    String espName = "Lights";                                      // Name of this module
+    String espName = "ModelLights";                                 // Name of this module
 #endif
 String hostName;                                                    // Hosst name
 String serverLanguage;                                              // This server language
@@ -202,7 +196,7 @@ bool ledsStarted = false;                                           // Are LEDs 
 //  ---- Agenda ----
 const char* separator = ";";                                        // Fields separator
 
-#ifdef FRENCH_VERSION
+#ifdef VERSION_FRANCAISE
     char agendaName[] = "Agenda";                                   // Agenda text
     char roomName[] = "Pieces";                                     // Room text
     char colorName[] = "Couleurs";                                  // Color tex
@@ -212,9 +206,9 @@ const char* separator = ";";                                        // Fields se
 #else
     char agendaName[] = "Agenda";                                   // Agenda text
     char roomName[] = "Rooms";                                      // Room text
-    char colorsName[] = "Colors";                                   // Color tex
-    char cyclesName[] = "Cycles";                                   // Cycle text
-    char groupsName[] = "Groups";                                   // Group text
+    char colorName[] = "Colors";                                    // Color tex
+    char cycleName[] = "Cycles";                                    // Cycle text
+    char groupName[] = "Groups";                                    // Group text
     char flashName[] = "Flashes";                                   // Flash text
 #endif
 
@@ -490,7 +484,7 @@ bool waitForEventsEmpty(void);
 #endif
     if (traceEnter) enterRoutine(__func__);
     char buffer[100];
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         snprintf_P(buffer, sizeof(buffer), "Connecté à %s (%s)",
             ssid.c_str(), WiFi.localIP().toString().c_str());
     #else
@@ -511,7 +505,7 @@ bool waitForEventsEmpty(void);
 #endif
     if (traceEnter) enterRoutine(__func__);
     char buffer[100];
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         snprintf_P(buffer, sizeof(buffer), "Connecté à %s (%s)",
             ssid.c_str(), WiFi.localIP().toString().c_str());
     #else
@@ -532,7 +526,7 @@ bool waitForEventsEmpty(void);
     void onWiFiStationDisconnected(WiFiEventStationModeDisconnected data) {
 #endif
     if (traceEnter) enterRoutine(__func__);
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("Wifi déconnecté", NULL);
     #else
         trace_info_P("Wifi disconnected", NULL);
@@ -600,7 +594,7 @@ void syslogSetup(void) {
             if (c == '\n' || c== '\r') {
                 // Do we have some command?
                 if (serialCommandLen) {
-                    #ifdef FRENCH_VERSION
+                    #ifdef VERSION_FRANCAISE
                         Serial.printf("Commande : >%s<\n", serialCommand);
                     #else
                         Serial.printf("Command: >%s<\n", serialCommand);
@@ -609,7 +603,7 @@ void syslogSetup(void) {
                     if (isDebugCommand(command)) {
                         // Command is known and already executed, do nothing
                     } else {
-                        #ifdef FRENCH_VERSION
+                        #ifdef VERSION_FRANCAISE
                             Serial.println(PSTR("Utiliser enable/disable trace/debug/enter/syslog"));
                     #else
                             Serial.println(PSTR("Use enable/disable trace/debug/enter/syslog"));
@@ -699,7 +693,7 @@ void traceSetup(void) {
 
 //  Trace each routine entering
 void enterRoutine(const char* routineName) {
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("Entre dans %s", routineName);
     #else
         trace_info_P("Entering %s", routineName);
@@ -736,7 +730,7 @@ void enterRoutine(const char* routineName) {
 String getResetCause(void) {
     if (traceEnter) enterRoutine(__func__);
     #ifdef ESP32
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             String reason = "Raison reset : CPU#0: "+verbosePrintResetReason(rtc_get_reset_reason(0))
                 +", CPU#1: "+verbosePrintResetReason(rtc_get_reset_reason(1));
         #else
@@ -747,7 +741,7 @@ String getResetCause(void) {
     #else
         struct rst_info *rtc_info = system_get_rst_info();
         // Get reset reason
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             String reason = PSTR("Raison reset : ") + String(rtc_info->reason, HEX)
                 + PSTR(" - ") + ESP.getResetReason();
         #else
@@ -803,7 +797,7 @@ void dumpSettings(void) {
 
 // Restart to apply message
 void restartToApply(void) {
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("*** Relancer l'ESP pour prise en compte ***", NULL);
     #else
         trace_info_P("*** Restart ESP to apply changes ***", NULL);
@@ -814,7 +808,7 @@ bool readSettings(void) {
     if (traceEnter) enterRoutine(__func__);
     File settingsFile = LittleFS.open(SETTINGS_FILE, "r");          // Open settings file
     if (!settingsFile) {                                            // Error opening?
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Ne peut ouvrir %s", SETTINGS_FILE);
         #else
             trace_error_P("Failed to %s", SETTINGS_FILE);
@@ -826,7 +820,7 @@ bool readSettings(void) {
     auto error = deserializeJson(settings, settingsFile);           // Read settings
     settingsFile.close();                                           // Close file
     if (error) {                                                    // Error reading JSON?
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Ne peut décoder %s", SETTINGS_FILE);
         #else
             trace_error_P("Failed to parse %s", SETTINGS_FILE);
@@ -914,7 +908,7 @@ void writeSettings(void) {
 
     File settingsFile = LittleFS.open(SETTINGS_FILE, "w");          // Open settings file
     if (!settingsFile) {                                            // Error opening?
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Ne peut ouvrir %s en écriture", SETTINGS_FILE);
         #else
             trace_error_P("Can't open %s for write", SETTINGS_FILE);
@@ -924,7 +918,7 @@ void writeSettings(void) {
 
     uint16_t bytes = serializeJsonPretty(settings, settingsFile);   // Write JSON structure to file
     if (!bytes) {                                                   // Error writting?
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Ne peut écrire %s", SETTINGS_FILE);
         #else
             trace_error_P("Can't write %s", SETTINGS_FILE);
@@ -932,7 +926,7 @@ void writeSettings(void) {
     }
     settingsFile.flush();                                           // Flush file
     settingsFile.close();                                           // Close it
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_debug_P("Envoi settings", NULL);
     #else
         trace_debug_P("Sending settings event", NULL);
@@ -1062,7 +1056,7 @@ void startUpload(AsyncWebServerRequest *request) {
             // File name is not supported
             lastUploadStatus = 412;
             request->send(412, "Unsupported file name");
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_error_P("Nom de fichier %s illégal", fileParameter->value().c_str());
             #else
                 trace_error_P("Illegal file name %s", fileParameter->value().c_str());
@@ -1151,7 +1145,7 @@ void setChangedReceived(AsyncWebServerRequest *request) {
     if (traceEnter) enterRoutine(__func__);
     bool dontWriteSettings = false;
     String position = request->url().substring(1);
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_debug_P("Reçu %s", position.c_str());
     #else
         trace_debug_P("Received %s", position.c_str());
@@ -1348,7 +1342,7 @@ void setChangedReceived(AsyncWebServerRequest *request) {
                 restartMe = true;
             } else {
                 // This is not a known field
-                #ifdef FRENCH_VERSION
+                #ifdef VERSION_FRANCAISE
                     trace_error_P("Donnée >%s< inconnue, valeur >%s<", fieldName.c_str(), fieldValue.c_str());
                 #else
                     trace_error_P("Can't set field >%s<, value >%s<", fieldName.c_str(), fieldValue.c_str());
@@ -1362,7 +1356,7 @@ void setChangedReceived(AsyncWebServerRequest *request) {
             if (!dontWriteSettings) writeSettings();
         } else {
             // This is not a known field
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_error_P("Pas de nom de donnée", NULL);
             #else
                 trace_error_P("No field name", NULL);
@@ -1413,14 +1407,14 @@ void languagesReceived(AsyncWebServerRequest *request){
                     output += jsonData["text"].as<String>();
                     output += "\"}";
                 } else {
-                    #ifdef FRENCH_VERSION
+                    #ifdef VERSION_FRANCAISE
                         trace_error_P("Ne peut decoder %s", fileName.c_str());
                     #else
                         trace_error_P("Can't decode %s", fileName.c_str());
                     #endif
                 }
             } else {
-                #ifdef FRENCH_VERSION
+                #ifdef VERSION_FRANCAISE
                     trace_error_P("Ne peut ouvrir %s", fileName.c_str());
                 #else
                     trace_error_P("Can't open %s", fileName.c_str());
@@ -1483,7 +1477,7 @@ void configsReceived(AsyncWebServerRequest *request){
 void commandReceived(AsyncWebServerRequest *request) {
     if (traceEnter) enterRoutine(__func__);
     String position = request->url().substring(1);
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_debug_P("Reçu %s", position.c_str());
     #else
         trace_debug_P("Received %s", position.c_str());
@@ -1504,7 +1498,7 @@ void commandReceived(AsyncWebServerRequest *request) {
         if (commandName == "xxx") {
         } else {
             // This is not a known field
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_error_P("Commande >%s< inconnue", commandName.c_str());
             #else
                 trace_error_P("Can't execute command >%s<", commandName.c_str());
@@ -1516,7 +1510,7 @@ void commandReceived(AsyncWebServerRequest *request) {
             return;
         }
     } else {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Pas de commande", NULL);
         #else
             trace_error_P("No command name", NULL);
@@ -1668,7 +1662,7 @@ void tableReceived(AsyncWebServerRequest *request) {
 // Called when a request can't be mapped to existing ones
 void notFound(AsyncWebServerRequest *request) {
     char msg[120];
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         snprintf_P(msg, sizeof(msg), PSTR("Fichier %s inconnu"), request->url().c_str());
     #else
         snprintf_P(msg, sizeof(msg), PSTR("File %s not found"), request->url().c_str());
@@ -1685,13 +1679,13 @@ void notFound(AsyncWebServerRequest *request) {
 void onStartOTA(void) {
     if (traceEnter) enterRoutine(__func__);
     if (ArduinoOTA.getCommand() == U_FLASH) {                       // Program update
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("Début MAJ firmware", NULL);
         #else
             trace_info_P("Starting firmware update", NULL);
         #endif
     } else {                                                        // File system update
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("Début MAJ fichiers", NULL);
         #else
             trace_info_P("Starting file system update", NULL);
@@ -1703,7 +1697,7 @@ void onStartOTA(void) {
 // Called when OTA ends
 void onEndOTA(void) {
     if (traceEnter) enterRoutine(__func__);
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("Fin de MAJ", NULL);
     #else
         trace_info_P("End of update", NULL);
@@ -1713,7 +1707,7 @@ void onEndOTA(void) {
 // Called when OTA error occurs
 void onErrorOTA(const ota_error_t erreur) {
     if (traceEnter) enterRoutine(__func__);
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         String msg = "Erreur OTA(";
         msg += String(erreur);
         msg += ") : Erreur ";
@@ -1790,7 +1784,7 @@ String extractItem(const String candidate, const uint16_t index, const String se
 void checkFreeBufferSpace(const char *function, const uint16_t line, const char *bufferName,
         const size_t bufferSize, const size_t bufferLen) {
     if ((bufferSize - bufferLen) < 0 || bufferSize <= 0) {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Taille %d et longueur %d pour %s dans %s:%d", bufferSize, bufferLen,
                 bufferName, function, line);
         #else
@@ -1801,7 +1795,7 @@ void checkFreeBufferSpace(const char *function, const uint16_t line, const char 
         size_t freeSize = bufferSize - bufferLen;
         uint8_t percent = (bufferLen * 100)/ bufferSize;
         if (percent > 90) {
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_info_P("%s:%d: %s rempli à %d\%%, %d octets libres (taille %d, longueur %d))",
             #else
                 trace_info_P("%s:%d: %s is %d\%% full, %d bytes remaining (size %d, length %d))",
@@ -1870,13 +1864,13 @@ void sendWebServerUpdate(void) {
         data["largestChunk"] = ESP.getMaxFreeBlockSize();
     #endif
     if (agendaError == -1) {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             data["agendaState"] = "*** Agenda pas encore chargé ***";
         #else
-            data["agendaState"] = ("*** Agenda not yet loaded ***";
+            data["agendaState"] = "*** Agenda not yet loaded ***";
         #endif
     } else if (agendaError == 0) {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             data["agendaState"] = fileToStart + " chargé";
         #else
             data["agendaState"] = fileToStart + " loaded";
@@ -1893,7 +1887,7 @@ void sendWebServerUpdate(void) {
 //  ---- Light routines ----
 
 void pleaseReboot() {
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("*** Merci de relancer le module ***", NULL);
     #else
         trace_info_P("*** Please restart module ***", NULL);
@@ -1966,7 +1960,7 @@ void lightLoop(void) {
             if (agendaIndex < agendaCount && agendaTable[agendaIndex].time <= simulationTime) {
                 char buffer[6];
                 formatTime(simulationTime, buffer, sizeof(buffer));
-                #ifdef FRENCH_VERSION
+                #ifdef VERSION_FRANCAISE
                     trace_info_P("Agenda %d, maintenant %s", agendaIndex+AGENDA_OFFSET, buffer);
                 #else
                     trace_info_P("Agenda %d, now %s", agendaIndex+AGENDA_OFFSET, buffer);
@@ -1981,7 +1975,7 @@ void lightLoop(void) {
                     } else if (agendaTable[agendaIndex].flags == flagCycle) {
                         setCycleAgenda(agendaIndex);
                     } else {
-                        #ifdef FRENCH_VERSION
+                        #ifdef VERSION_FRANCAISE
                             trace_error_P("Flag %d ligne %d de l'agenda inconnu", agendaTable[agendaIndex].flags, agendaIndex + AGENDA_OFFSET);
                         #else
                             trace_error_P("Agenda flag %d line %d is unknown", agendaTable[agendaIndex].flags, agendaIndex + AGENDA_OFFSET);
@@ -1997,7 +1991,7 @@ void lightLoop(void) {
                 simulationTime = simulationStart;                   // Reinit time
                 formatTime(simulationStop, buffer, sizeof(buffer));
                 formatTime(simulationTime, buffer2, sizeof(buffer2));
-                #ifdef FRENCH_VERSION
+                #ifdef VERSION_FRANCAISE
                     trace_info_P("On passe de %s à %s", buffer, buffer2);
                 #else
                     trace_info_P("Going from %s to %s", buffer, buffer2);
@@ -2014,7 +2008,7 @@ void lightLoop(void) {
                     } else if (agendaTable[agendaIndex].flags == flagCycle) {
                         setCycleAgenda(agendaIndex);
                     } else {
-                        #ifdef FRENCH_VERSION
+                        #ifdef VERSION_FRANCAISE
                             trace_error_P("Flag %d ligne %d de l'agenda inconnu", agendaTable[agendaIndex].flags, agendaIndex + AGENDA_OFFSET);
                         #else
                             trace_error_P("Agenda flag %d line %d is unknown", agendaTable[agendaIndex].flags, agendaIndex + AGENDA_OFFSET);
@@ -2073,7 +2067,7 @@ void activateSequence(const uint16_t sequence) {
     uint8_t g = percent(colorData.g, roomData.intensity);
     uint8_t b = percent(colorData.b, roomData.intensity);
     #ifdef TRACE_SEQUENCE
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("LED %d à %d mises à (%d, %d, %d) pour %d ms (S%dP%dC%d)",
                 roomData.firstLed, roomData.firstLed + roomData.ledCount-1, colorData.r, colorData.g, colorData.b,
                 sequenceData.waitTime, sequence+SEQUENCE_OFFSET, sequenceData.room+ROOM_OFFSET,
@@ -2112,7 +2106,7 @@ void activateCycle (const uint8_t cycle, const uint8_t increment) {
         }
     }
     if (!sequenceFound) {
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_error_P("Cycle %d séquence %d inconnue, ignorée", cycle+CYCLE_OFFSET, seq+SEQUENCE_OFFSET);
     #else
         trace_error_P("Can't find cycle %d sequence %d, ignored", cycle+CYCLE_OFFSET, seq+SEQUENCE_OFFSET);
@@ -2147,7 +2141,7 @@ void activateFlash (const uint8_t flash) {
         uint8_t b = percent(colorData.b, flashData.intensity);
         // For all LEDs specified by user
         #ifdef TRACE_FLASH
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_info_P("LED %d à %d mises à (%d, %d, %d) (F%dP%d)",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                     r, g, b, flash+FLASH_OFFSET, flashData.room+ROOM_OFFSET);
@@ -2181,7 +2175,7 @@ void activateFlash (const uint8_t flash) {
         }
         // For all LEDs in this room
         #ifdef TRACE_FLASH
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_info_P("LED %d à %d mises à %06x (F%dP%d)",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                     flashData.previousColor, flash+FLASH_OFFSET, flashData.room+ROOM_OFFSET);
@@ -2201,7 +2195,7 @@ void activateFlash (const uint8_t flash) {
 
 // Set global luminosity
 void setGlobalLuminosity(uint8_t luminosity) {
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_debug_P("Luminosité %d", luminosity);
     #else
         trace_debug_P("Luminosity %d", luminosity);
@@ -2218,7 +2212,7 @@ void lightParameterChanged(void) {
 
 // Clear (turn off) all lights
 void clearAllLights(void) {
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info("Tout éteint");
     #else
         trace_info("Clearing all lights");
@@ -2239,14 +2233,14 @@ void startLight(void) {
     clearAllLights();                                               // Clear all lights
     lightParameterChanged();                                        // Compute parameters
     if (agendaError) {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Erreur %d chargeant %s, stoppé", agendaError, fileToStart.c_str());
         #else
             trace_error_P("Error %d loading %s, not starting", agendaError, fileToStart.c_str());
         #endif
     } else {
         simulationActive = true;                                    // Simulation is active
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info("Début simulation");
         #else
             trace_info("Starting simulation");
@@ -2307,7 +2301,7 @@ void setLedAgenda(const uint16_t agendaPtr) {
     uint8_t r = percent(colorData.r, intensity);
     uint8_t g = percent(colorData.g, intensity);
     uint8_t b = percent(colorData.b, intensity);
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("LED %d à %d mises à (%d, %d, %d) (A%dP%dC%d)",
             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
             colorData.r, colorData.g, colorData.b,
@@ -2346,7 +2340,7 @@ void setGroupAgenda(const uint16_t agendaPtr) {
             uint8_t r = percent(colorData.r, intensity);
             uint8_t g = percent(colorData.g, intensity);
             uint8_t b = percent(colorData.b, intensity);
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_info_P("LED %d à %d mises à (%d, %d, %d) (A%dG%dP%dC%d)",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                     colorData.r, colorData.g, colorData.b,
@@ -2371,7 +2365,7 @@ void setGroupAgenda(const uint16_t agendaPtr) {
 void setCycleAgenda(const uint16_t agendaPtr) {
     agendaTable_s agendaData = agendaTable[agendaPtr];              // Get agenda data
     cycleTable[agendaData.tableIndex].isActive = (agendaData.otherData != 0); // Set active flag
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("Agenda %d, cycle %d %sactif",
             agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+CYCLE_OFFSET,
             cycleTable[agendaData.tableIndex].isActive? "" : "in");
@@ -2405,7 +2399,7 @@ void setFlashAgenda(const uint16_t agendaPtr) {
     uint16_t flashPtr = agendaData.tableIndex;                      // Get pointer into flash table
     flashTable_s flashData = flashTable[flashPtr];                  // Get flash data
     flashData.state = agendaData.otherData != 0? flashStarting : flashStateInactive; // Set state
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("Agenda %d, flash %d %sactif",
             agendaPtr+AGENDA_OFFSET, flashPtr+FLASH_OFFSET, flashData.state != flashStateInactive? "" : "in");
     #else
@@ -2431,7 +2425,7 @@ void setFlashAgenda(const uint16_t agendaPtr) {
 // Stop light simulation
 void stopLight(void) {
     simulationActive = false;                                       // Simulation is not active
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info("Fin simulation");
     #else
         trace_info("Stoping simulation");
@@ -2447,7 +2441,7 @@ void sendLight(void) {
     uint8_t r = percent(colorData.r, roomData.intensity);
     uint8_t g = percent(colorData.g, roomData.intensity);
     uint8_t b = percent(colorData.b, roomData.intensity);
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("LED %d à %d mises à (%d, %d, %d), flash %d (Utilisateur)",
             roomData.firstLed, roomData.firstLed + roomData.ledCount-1, r, g, b, enableFlash);
     #else
@@ -2479,7 +2473,7 @@ uint8_t percent(const uint16_t value, const uint16_t percentage) {
 // Work with files just after they're uploaded
 void uploadLoop(void) {
     if (lastUploadedFile != "") {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("Reçu %s", lastUploadedFile.c_str());
         #else
             trace_info_P("Just received %s", lastUploadedFile.c_str());
@@ -2504,14 +2498,14 @@ int signalError(const int errorCode, const int integerValue,  const char* string
     memset(lastErrorMessage, 0, sizeof(lastErrorMessage));
     switch (errorCode) {
         case 100:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Ne peut ouvrir %s", stringValue);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Can't open file %s", stringValue);
             #endif
             break;
         case 101:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Entête >%s< incorrecte dans %s",
                     stringValue, configurationName);
             #else
@@ -2520,14 +2514,14 @@ int signalError(const int errorCode, const int integerValue,  const char* string
             #endif
             break;
         case 102:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Fichier %s manquant", stringValue);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "File missing for %s", stringValue);
             #endif
             break;
         case 103:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Entête >%s< déjà définie dans %s, avant la ligne %d",
                     stringValue, configurationName, fileLineNumber);
             #else
@@ -2536,7 +2530,7 @@ int signalError(const int errorCode, const int integerValue,  const char* string
             #endif
             break;
         case 104:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Nombre de zones (%d) incorrect ligne %d de %s",
                     integerValue, fileLineNumber, configurationName);
             #else
@@ -2545,7 +2539,7 @@ int signalError(const int errorCode, const int integerValue,  const char* string
             #endif
             break;
         case 105:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
                     "Valeur >%s< incorrecte, zone %d, ligne %d de %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
@@ -2556,7 +2550,7 @@ int signalError(const int errorCode, const int integerValue,  const char* string
             #endif
             break;
         case 106:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
                     "Valeur >%s< hors limite, zone %d, ligne %d de %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
@@ -2567,7 +2561,7 @@ int signalError(const int errorCode, const int integerValue,  const char* string
             #endif
             break;
         case 107:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
                     "Pièce >%s< inconnue, ligne %d de %s", stringValue, fileLineNumber, configurationName);
             #else
@@ -2576,7 +2570,7 @@ int signalError(const int errorCode, const int integerValue,  const char* string
             #endif
             break;
         case 108:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
                     "Couleur >%s< inconnue, ligne %d de %s", stringValue, fileLineNumber, configurationName);
             #else
@@ -2585,7 +2579,7 @@ int signalError(const int errorCode, const int integerValue,  const char* string
             #endif
             break;
         case 109:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
                     "Heure >%s< incorrecte, zone %d, ligne %d de %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
@@ -2596,18 +2590,18 @@ int signalError(const int errorCode, const int integerValue,  const char* string
             #endif
             break;
         case 110:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
                     "LED de fin %d incorrecte, ligne %d de %s",
                     integerValue, fileLineNumber, configurationName);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "Incorrectt ending LED %d, line %d of %s",
+                    "Incorrect ending LED %d, line %d of %s",
                     integerValue, fileLineNumber, configurationName);
             #endif
             break;
         default:
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
                     "Erreur %d inconnue, fichier %s, ligne %d, entier %d, chaîne >%s<",
                     errorCode, configurationName, fileLineNumber, integerValue, stringValue);
@@ -3127,13 +3121,13 @@ int loadAgenda(void) {
     unsigned long startTime = millis();
     agendaError = loadAgendaDetails();
     if (agendaError) {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Erreur %d dans %s - Simulation impossible", agendaError, fileToStart.c_str());
         #else
             trace_error_P("Error %d loading %s - No actions will be done!", agendaError, fileToStart.c_str());
         #endif
     } else {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("%s chargé en %d ms", fileToStart.c_str(), millis() - startTime);
         #else
             trace_info_P("%s loaded in %d ms", fileToStart.c_str(),millis() - startTime);
@@ -3289,7 +3283,7 @@ void setup(void) {
     Serial.setDebugOutput(false);                                   // To allow Serial.swap() to work properly
 
     Serial.println("");
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("Initialise %s V%s", __FILENAME__, VERSION);
     #else
         trace_info_P("Initializing %s V%s", __FILENAME__, VERSION);
@@ -3310,7 +3304,7 @@ void setup(void) {
         String path = "/";
         #ifdef ESP32
             File dir = LittleFS.open(path);
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_info_P("Contenu flash", NULL);
             #else
                 trace_info_P("FS content", NULL);
@@ -3320,7 +3314,7 @@ void setup(void) {
         #else
             Dir dir = LittleFS.openDir(path);
             path = String();
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_info_P("Contenu flash", NULL);
             #else
                 trace_info_P("FS content", NULL);
@@ -3346,7 +3340,7 @@ void setup(void) {
 
     // Load preferences
     if (!readSettings()) {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_error_P("Pas de configuration, stop !", NULL);
         #else
             trace_error_P("No settings, stopping!", NULL);
@@ -3384,7 +3378,7 @@ void setup(void) {
         #ifdef ESP8266
             WiFi.mode(WIFI_STA);                                    // Set station mode
         #endif
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("Recherche %s", ssid.c_str());
         #else
             trace_info_P("Searching %s", ssid.c_str());
@@ -3396,7 +3390,7 @@ void setup(void) {
             loopCount++;
         }                                                           // Loop
         if (WiFi.status() == WL_CONNECTED) {                        // If we're not connected
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_info_P("Connexion à %s par http://%s/ ou http://%s/ ",
                     ssid.c_str(), WiFi.localIP().toString().c_str(), hostName.c_str());
             #else
@@ -3404,7 +3398,7 @@ void setup(void) {
                     ssid.c_str(), WiFi.localIP().toString().c_str(), hostName.c_str());
             #endif
         } else {
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                 trace_info_P("Pas connecté, passe en mode point d'accès ...", NULL);
             #else
                 trace_info_P("Not connected, starting access point...", NULL);
@@ -3427,13 +3421,13 @@ void setup(void) {
             snprintf_P(buffer, sizeof(buffer),PSTR("%s_%X"), hostName.c_str(), ESP.getChipId());
         #endif
         checkFreeBufferSpace(__func__, __LINE__, "buffer", sizeof(buffer), strlen(buffer));
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("Creation du point d'accès %s (%s)", buffer, accessPointPwd.c_str());
         #else
             trace_info_P("Creating %s access point (%s)", buffer, accessPointPwd.c_str());
         #endif
         WiFi.softAP(buffer, accessPointPwd.c_str());                // Starts Wifi access point
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("Connexion à %s par http://%s/", buffer, WiFi.softAPIP().toString().c_str());
             snprintf_P(buffer, sizeof(buffer), "Point d'accès %s actif (%s)",
                 ssid.c_str(), WiFi.softAPIP().toString().c_str());
@@ -3459,7 +3453,7 @@ void setup(void) {
     //ArduinoOTA.setPassword("my OTA password");                    // Uncomment to set an OTA password
     ArduinoOTA.begin();                                             // Initialize OTA
 
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("%s V%s lancé", __FILENAME__, VERSION);
         trace_info_P("Cause : %s", resetCause.c_str());
     #else
@@ -3490,7 +3484,7 @@ void setup(void) {
     webServer.onNotFound (notFound);                                // To be called when URL is not known
 
     events.onConnect([](AsyncEventSourceClient *client){            // Routine called when a client connects
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_debug_P("Client connecté", NULL);
         #else
             trace_debug_P("Event client connected", NULL);
@@ -3510,7 +3504,7 @@ void setup(void) {
     });
 
     events.onDisconnect([](AsyncEventSourceClient *client){         // Routine called when a client connects
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_debug_P("Client déconnecté", NULL);
         #else
             trace_debug_P("Event client disconnected", NULL);
@@ -3520,7 +3514,7 @@ void setup(void) {
     webServer.begin();                                              // Start Web server
     lightSetup();                                                   // Start simulation
 
-    #ifdef FRENCH_VERSION
+    #ifdef VERSION_FRANCAISE
         trace_info_P("Fin lancement", NULL);
     #else
         trace_info_P("Init done", NULL);
@@ -3545,7 +3539,7 @@ void loop(void) {
     }
     #ifdef FF_TRACE_USE_SYSLOG
         if ((micros() - lastSyslogMessageMicro) > 600000000) {      // Last syslog older than 10 minutes?
-            #ifdef FRENCH_VERSION
+            #ifdef VERSION_FRANCAISE
                trace_info_P("Toujours vivant ...", NULL);
             #else
                trace_info_P("I'm still alive...", NULL);
@@ -3553,7 +3547,7 @@ void loop(void) {
         }
     #endif
     if (restartMe) {
-        #ifdef FRENCH_VERSION
+        #ifdef VERSION_FRANCAISE
             trace_info_P("Relance l'ESP ...", NULL);
         #else
             trace_info_P("Restarting ESP ...", NULL);
