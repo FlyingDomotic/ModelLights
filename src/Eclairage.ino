@@ -1,4 +1,4 @@
-#define VERSION "25.12.28-1"
+#define VERSION "26.1.4-4"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -203,6 +203,12 @@ const char* separator = ";";                                        // Fields se
     char cycleName[] = "Cycles";                                    // Cycle text
     char groupName[] = "Groupes";                                   // Group text
     char flashName[] = "Flashs";                                    // Flash text
+    char agendaName2[] = "Agenda";                                  // Agenda text
+    char roomName2[] = "Rooms";                                     // Room text
+    char colorName2[] = "Colors";                                   // Color tex
+    char cycleName2[] = "Cycles";                                   // Cycle text
+    char groupName2[] = "Groups";                                   // Group text
+    char flashName2[] = "Flashes";                                  // Flash text
 #else
     char agendaName[] = "Agenda";                                   // Agenda text
     char roomName[] = "Rooms";                                      // Room text
@@ -210,6 +216,12 @@ const char* separator = ";";                                        // Fields se
     char cycleName[] = "Cycles";                                    // Cycle text
     char groupName[] = "Groups";                                    // Group text
     char flashName[] = "Flashes";                                   // Flash text
+    char agendaName2[] = "Agenda";                                  // Agenda text
+    char roomName2[] = "Pieces";                                    // Room text
+    char colorName2[] = "Couleurs";                                 // Color tex
+    char cycleName2[] = "Cycles";                                   // Cycle text
+    char groupName2[] = "Groupes";                                  // Group text
+    char flashName2[] = "Flashs";                                   // Flash text
 #endif
 
 uint16_t roomCount = 0;                                             // Count of rooms in file
@@ -223,15 +235,15 @@ uint16_t flashCount = 0;                                            // Count of 
 uint16_t agendaCount = 0;                                           // Count of agendas in file
 uint16_t agendaPreviousTime = 0;                                    // Time of previous line in agenda
 uint16_t tablePtr = 0;                                              // Pointer to table currently dumped by /tables
-uint16_t tableIndex = 0;                                            // Index of table currently dumped by /tables
+uint16_t tableRow = 0;                                              // Row  of table currently dumped by /tables
 
-#define ROOM_OFFSET 2                                               // Offset to add to index to get room line number
-#define GROUP_OFFSET 2                                              // Offset to add to index to get group line number
-#define COLOR_OFFSET 2                                              // Offset to add to index to get color line number
-#define CYCLE_OFFSET 2                                              // Offset to add to index to get cycle line number
-#define FLASH_OFFSET 2                                              // Offset to add to index to get flash line number
+#define ROOM_OFFSET 1                                               // Offset to add to index to get room line number
+#define GROUP_OFFSET 1                                              // Offset to add to index to get group line number
+#define COLOR_OFFSET 1                                              // Offset to add to index to get color line number
+#define CYCLE_OFFSET 1                                              // Offset to add to index to get cycle line number
+#define FLASH_OFFSET 1                                              // Offset to add to index to get flash line number
 #define SEQUENCE_OFFSET 1                                           // Offset to add to index to get sequence#
-#define AGENDA_OFFSET 2                                             // Offset to add to index to get agenda line number
+#define AGENDA_OFFSET 1                                             // Offset to add to index to get agenda line number
 
 typedef enum {
     unknownFileFormat = 0,                                          // File format in unknown
@@ -243,12 +255,12 @@ typedef enum {
     agendaFileFormat                                                // We're in an agenda file
 } fileFormat_t;
 
-typedef enum {                                                      // Agenda structure flag type
-    flagRoom = 0,                                                   // Content is room
-    flagGroup,                                                      // Content is group
-    flagFlash,                                                      // Content is flash
-    flagCycle                                                       // Content is cycle
-} flags_t;
+typedef enum {                                                      // Agenda structure type
+    typeRoom = 0,                                                   // Content is room
+    typeGroup,                                                      // Content is group
+    typeFlash,                                                      // Content is flash
+    typeCycle                                                       // Content is cycle
+} tableType_t;
 
 typedef enum {                                                      // Flash Agenda structure flag type
     flashStateInactive = 0,                                         // Unknown state
@@ -283,7 +295,7 @@ struct flashTable_s {                                               // Flash tab
     unsigned long lastRunTime;                                      // Last time this flash was run
     uint16_t waitTime;                                              // Time to wait before next sequence
     uint16_t pendingRepeats;                                        // Repeats still pending
-    uint16_t room;                                                  // Room
+    uint16_t roomOrGroup;                                           // Room or group
     uint16_t color;                                                 // Color
     uint16_t onMin;                                                 // On min time
     uint16_t onMax;                                                 // On max time
@@ -309,7 +321,7 @@ struct cycleTable_s {                                               // Cycle tab
 struct sequenceTable_s {                                            // Sequence table
     uint8_t cycle;                                                  // Index in cycle table
     uint8_t sequence;                                               // Sequence in cycle
-    uint16_t room;                                                  // Room index
+    uint16_t roomOrGroup;                                           // Room or group index
     uint16_t color;                                                 // Color index
     uint16_t waitTime;                                              // Wait time
     uint16_t maxWaitTime;                                           // Max wait time
@@ -320,7 +332,11 @@ struct agendaTable_s {                                              // Agenda ta
     uint16_t tableIndex;                                            // Table (room, flash or cycle) index
     uint16_t otherData;                                             // Color color index or active flag
     uint8_t intensity;                                              // Luminosity % (0-100)
-    flags_t flags;                                                  // Flags
+    tableType_t tableType;                                          // tableType
+};
+
+struct previousColor_s {                                            // Previous color table
+    uint32_t previousColor;                                         // Previous color
 };
 
 int agendaError = -1;                                               // Error code of last agenda analysis
@@ -338,6 +354,7 @@ cycleTable_s* cycleTable = new cycleTable_s[0];                     // Cycle tab
 groupTable_s* groupTable = new groupTable_s[0];                     // Group table
 sequenceTable_s* sequenceTable = new sequenceTable_s[0];            // Sequence table
 agendaTable_s* agendaTable = new agendaTable_s[0];                  // Agenda table
+previousColor_s* previousColor = new previousColor_s[0];            // Previous color table
 
 //          --------------------------------------
 //          ---- Function/routines definition ----
@@ -427,10 +444,15 @@ void checkFreeBufferSpace(const char *function, const uint16_t line, const char 
     const size_t bufferSize, const size_t bufferLen);
 bool isDebugCommand(const String givenCommand);
 bool restartMe = false;
+void pleaseReboot(void);
 
 //  ---- Light routines ----
 
-void pleaseReboot();
+bool isGroup(uint16_t roomOrGroup);
+uint16_t setGroup(uint16_t group);
+uint16_t getGroup(uint16_t group);
+void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend=nullptr, uint8_t otherItensity=100, bool isFlash=false);
+void revertRoomOrGroup(uint16_t roomOrGroup, char* legend=nullptr);
 void lightSetup();
 void lightLoop(void);
 void lightParameterChanged(void);
@@ -442,7 +464,7 @@ void formatTime(const int time, char* buffer, const size_t bufferLen);
 uint8_t percent(const uint16_t value, const uint16_t percentage);
 void uploadLoop(void);
 void setLedAgenda(const uint16_t agendaPtr);
-void setGroupAgenda(const uint16_t agendaPtr);
+void getGroupAgenda(const uint16_t agendaPtr);
 void setCycleAgenda(const uint16_t agendaPtr);
 void setFlashAgenda(const uint16_t agendaPtr);
 void activateCycle (const uint8_t cycle, const uint8_t increment=0);
@@ -1127,6 +1149,7 @@ void statusReceived(AsyncWebServerRequest *request) {
         (groupCount * sizeof(groupTable_s)) +
         (sequenceCount * sizeof(sequenceTable_s)) +
         (agendaCount * sizeof(agendaTable_s));
+    answer["saveSize"] = ledCount * sizeof(previousColor_s);
     #ifdef ESP32
         answer["freeMemory"] = ESP.getFreeHeap();
         answer["largestChunk"] = ESP.getMaxAllocHeap();
@@ -1558,100 +1581,100 @@ void tableReceived(AsyncWebServerRequest *request) {
             [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
         if (index == 0) {                                           // Init pointers if index is null
             tablePtr = 0;
-            tableIndex = 0;
+            tableRow = 0;
         }
         memset(buffer, 0, maxLen);                                  // Clear buffer
         char header[100] = {0};                                     // Clear header
         if (tablePtr ==  0) {                                       // Room table
-            if (!tableIndex)  {                                     // Set header
-                snprintf_P(header, sizeof(header), "Idx 1st Cnt Int (%s)\n", roomName);
+            if (!tableRow)  {                                       // Set header
+                snprintf_P(header, sizeof(header), "Row 1st Cnt Int (%s)\n", roomName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d\n", header, tableIndex,
-                roomTable[tableIndex].firstLed, roomTable[tableIndex].ledCount, roomTable[tableIndex].intensity);
-            tableIndex++;                                           // Next table index
-            if (tableIndex >= roomCount+1) {                        // Are we at end of table?
+            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d\n", header, tableRow,
+                roomTable[tableRow].firstLed, roomTable[tableRow].ledCount, roomTable[tableRow].intensity);
+            tableRow++;                                             // Next table index
+            if (tableRow >= roomCount+1) {                          // Are we at end of table?
                 tablePtr++;                                         // Next table
-                tableIndex = 0;                                     // Clear index
+                tableRow = 0;                                       // Clear index
             }
         } else if (tablePtr ==  1) {                                // Group table
-            if (!tableIndex)  {                                     // Set header
-                snprintf_P(header, sizeof(header), "Idx     Name Rom (%s)\n", groupName);
+            if (!tableRow)  {                                       // Set header
+                snprintf_P(header, sizeof(header), "Row     Name Rom (%s)\n", groupName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %8x %3d\n", header, tableIndex,
-                groupTable[tableIndex].crc, groupTable[tableIndex].room);
-            tableIndex++;                                           // Next table index
-            if (tableIndex >= groupCount) {                         // Are we at end of table?
+            snprintf_P((char*) buffer, maxLen, "%s%3d %8x %3d\n", header, tableRow,
+                groupTable[tableRow].crc, groupTable[tableRow].room);
+            tableRow++;                                             // Next table index
+            if (tableRow >= groupCount) {                           // Are we at end of table?
                 tablePtr++;                                         // Next table
-                tableIndex = 0;                                     // Clear index
+                tableRow = 0;                                       // Clear index
             }
         } else if (tablePtr ==  2) {                                // Color table
-            if (!tableIndex)  {                                     // Set header
-                snprintf_P(header, sizeof(header), "Idx   R   G   B (%s)\n", colorName);
+            if (!tableRow)  {                                       // Set header
+                snprintf_P(header, sizeof(header), "Row   R   G   B (%s)\n", colorName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d\n", header, tableIndex,
-                colorTable[tableIndex].r, colorTable[tableIndex].g, colorTable[tableIndex].b);
-            tableIndex++;                                           // Next table index
-            if (tableIndex >= colorCount+1) {                       // Are we at end of table?
+            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d\n", header, tableRow,
+                colorTable[tableRow].r, colorTable[tableRow].g, colorTable[tableRow].b);
+            tableRow++;                                             // Next table index
+            if (tableRow >= colorCount+1) {                         // Are we at end of table?
                 tablePtr++;                                         // Next table
-                tableIndex = 0;                                     // Clear index
+                tableRow = 0;                                       // Clear index
             }
         } else if (tablePtr ==  3) {                                // Flash table
-            if (!tableIndex)  {                                     // Set header
-                snprintf_P(header, sizeof(header), "Idx  Rom Col Sta  Wait  Rept OnMin OnMax OfMin OfMax RpMin RpMax Psin PsMax (%s)\n", flashName);
+            if (!tableRow)  {                                       // Set header
+                snprintf_P(header, sizeof(header), "Row Idex Col Sta  Wait  Rept OnMin OnMax OfMin OfMax RpMin RpMax Psin PsMax (%s)\n", flashName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d %5d %5d %5d %5d %5d %5d %5d %5d %5d %5d\n", header, tableIndex,
-                flashTable[tableIndex].room, flashTable[tableIndex].color, flashTable[tableIndex].state,
-                flashTable[tableIndex].waitTime, flashTable[tableIndex].pendingRepeats,
-                flashTable[tableIndex].onMin, flashTable[tableIndex].onMax,
-                flashTable[tableIndex].offMin, flashTable[tableIndex].offMax,
-                flashTable[tableIndex].repeatMin, flashTable[tableIndex].repeatMax,
-                flashTable[tableIndex].pauseMin, flashTable[tableIndex].pauseMax);
-            tableIndex++;                                           // Next table index
-            if (tableIndex >= flashCount+1) {                       // Are we at end of table?
+            snprintf_P((char*) buffer, maxLen, "%s%3d %4d %3d %3d %5d %5d %5d %5d %5d %5d %5d %5d %5d %5d\n", header, tableRow,
+                flashTable[tableRow].roomOrGroup, flashTable[tableRow].color, flashTable[tableRow].state,
+                flashTable[tableRow].waitTime, flashTable[tableRow].pendingRepeats,
+                flashTable[tableRow].onMin, flashTable[tableRow].onMax,
+                flashTable[tableRow].offMin, flashTable[tableRow].offMax,
+                flashTable[tableRow].repeatMin, flashTable[tableRow].repeatMax,
+                flashTable[tableRow].pauseMin, flashTable[tableRow].pauseMax);
+            tableRow++;                                             // Next table index
+            if (tableRow >= flashCount+1) {                         // Are we at end of table?
                 tablePtr++;                                         // Next table
-                tableIndex = 0;                                     // Clear index
+                tableRow = 0;                                       // Clear index
             }
         } else if (tablePtr ==  4) {                                // Cycle table
-            if (!tableIndex)  {                                     // Set header
-                snprintf_P(header, sizeof(header), "Idx Run Act Cnt  Wait (%s)\n", cycleName);
+            if (!tableRow)  {                                       // Set header
+                snprintf_P(header, sizeof(header), "Row Run Act Cnt  Wait (%s)\n", cycleName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d %5d\n", header, tableIndex,
-                cycleTable[tableIndex].isActive, cycleTable[tableIndex].activeSequence,
-                cycleTable[tableIndex].sequenceCount, cycleTable[tableIndex].waitTime);
-            tableIndex++;                                           // Next table index
-            if (tableIndex >= cycleCount) {                         // Are we at end of table?
+            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d %5d\n", header, tableRow,
+                cycleTable[tableRow].isActive, cycleTable[tableRow].activeSequence,
+                cycleTable[tableRow].sequenceCount, cycleTable[tableRow].waitTime);
+            tableRow++;                                             // Next table index
+            if (tableRow >= cycleCount) {                           // Are we at end of table?
                 tablePtr++;                                         // Next table
-                tableIndex = 0;                                     // Clear index
+                tableRow = 0;                                       // Clear index
             }
         } else if (tablePtr ==  5) {                                // Sequence table
-            if (!tableIndex)  {                                     // Set header
-                snprintf_P(header, sizeof(header), "Idx Cyc Seq Rom Clr  Wait MaxWt (Sequence)\n");
+            if (!tableRow)  {                                       // Set header
+                snprintf_P(header, sizeof(header), "Row Cyc Seq Idex Clr  Wait MaxWt (Sequence)\n");
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d %3d %5d %5d\n", header, tableIndex,
-                sequenceTable[tableIndex].cycle, sequenceTable[tableIndex].sequence,
-                sequenceTable[tableIndex].room, sequenceTable[tableIndex].color,
-                sequenceTable[tableIndex].waitTime, sequenceTable[tableIndex].maxWaitTime);
-            tableIndex++;                                           // Next table index
-            if (tableIndex >= sequenceCount) {                      // Are we at end of table?
+            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %4d %3d %5d %5d\n", header, tableRow,
+                sequenceTable[tableRow].cycle, sequenceTable[tableRow].sequence,
+                sequenceTable[tableRow].roomOrGroup, sequenceTable[tableRow].color,
+                sequenceTable[tableRow].waitTime, sequenceTable[tableRow].maxWaitTime);
+            tableRow++;                                             // Next table index
+            if (tableRow >= sequenceCount) {                        // Are we at end of table?
                 tablePtr++;                                         // Next table
-                tableIndex = 0;                                     // Clear index
+                tableRow = 0;                                       // Clear index
             }
         } else if (tablePtr ==  6) {                                // Agenda table
-            if (!tableIndex)  {                                     // Set header
-                snprintf_P(header, sizeof(header), "Idx Flg Time Ind Oth Int (%s)\n", agendaName);
+            if (!tableRow)  {                                       // Set header
+                snprintf_P(header, sizeof(header), "Row Flg Time Ind Oth Int (%s)\n", agendaName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %4d %3d %3d %3d\n", header, tableIndex,
-                agendaTable[tableIndex].flags, agendaTable[tableIndex].time,
-                agendaTable[tableIndex].tableIndex, agendaTable[tableIndex].otherData,
-                agendaTable[tableIndex].intensity);
-            tableIndex++;                                           // Next table index
-            if (tableIndex >= agendaCount) {                        // Are we at end of table?
+            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %4d %3d %3d %3d\n", header, tableRow,
+                agendaTable[tableRow].tableType, agendaTable[tableRow].time,
+                agendaTable[tableRow].tableIndex, agendaTable[tableRow].otherData,
+                agendaTable[tableRow].intensity);
+            tableRow++;                                             // Next table index
+            if (tableRow >= agendaCount) {                          // Are we at end of table?
                 tablePtr++;                                         // Next table
-                tableIndex = 0;                                     // Clear index
+                tableRow = 0;                                       // Clear index
             }
         } else {
             tablePtr = 0;                                           // Clear table
-            tableIndex = 0;                                         // Clear index
+            tableRow = 0;                                           // Clear index
             return 0;                                               // Finished!
         }
       return strlen((char*) buffer);
@@ -1796,9 +1819,9 @@ void checkFreeBufferSpace(const char *function, const uint16_t line, const char 
         uint8_t percent = (bufferLen * 100)/ bufferSize;
         if (percent > 90) {
             #ifdef VERSION_FRANCAISE
-                trace_info_P("%s:%d: %s rempli à %d\%%, %d octets libres (taille %d, longueur %d))",
+                trace_debug_P("%s:%d: %s rempli à %d\%%, %d octets libres (taille %d, longueur %d))",
             #else
-                trace_info_P("%s:%d: %s is %d\%% full, %d bytes remaining (size %d, length %d))",
+                trace_debug_P("%s:%d: %s is %d\%% full, %d bytes remaining (size %d, length %d))",
             #endif
                 function, line, bufferName, percent, freeSize, bufferSize, bufferLen);
         }
@@ -1884,14 +1907,144 @@ void sendWebServerUpdate(void) {
     sendAnUpdateFlag = false;
 }
 
-//  ---- Light routines ----
-
-void pleaseReboot() {
+void pleaseReboot(void) {
     #ifdef VERSION_FRANCAISE
         trace_info_P("*** Merci de relancer le module ***", NULL);
     #else
         trace_info_P("*** Please restart module ***", NULL);
     #endif
+}
+
+//  ---- Light routines ----
+
+// Determine if a roomOrGroup value is a group
+bool isGroup(uint16_t roomOrGroup) {
+    return (roomOrGroup >= 9000);
+}
+
+// Set a group as roomOrGroup
+uint16_t setGroup(uint16_t group) {
+    return group + 9000;
+}
+
+// Get a group as roomOrGroup
+uint16_t getGroup(uint16_t group) {
+    return group - 9000;
+}
+
+// Set color for room or group, optionally saving previous color
+void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t otherIntensity, bool isFlash) {
+    colorTable_s colorData = colorTable[color];                     // Load color
+    if (isGroup(roomOrGroup)) {
+        // Scan all groups lines for this group id
+        uint16_t groupIndex = getGroup(roomOrGroup);                // Get group index
+        for (int i =0; i < groupCount; i++) {
+            if (groupTable[i].crc == groupTable[groupIndex].crc) {  // Are we on the same group?
+                roomTable_s roomData = roomTable[groupTable[i].room];               // Load room from group
+                uint8_t intensity;
+                if (!roomData.intensity || !otherIntensity) {       // If one intensity is zero
+                    intensity = 0;                                  // Intensity = 0
+                } else {                                            // Else compute average
+                    intensity = (roomData.intensity + otherIntensity+1) >> 1;
+                }
+                uint8_t r = percent(colorData.r, intensity);
+                uint8_t g = percent(colorData.g, intensity);
+                uint8_t b = percent(colorData.b, intensity);
+                if (legend != nullptr) {
+    #ifdef VERSION_FRANCAISE
+                        trace_debug_P("LED %d à %d mises à (%d, %d, %d) %s",
+                            roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                            colorData.r, colorData.g, colorData.b,
+                            legend);
+                    #else
+                        trace_debug_P("LED %d to %d set to (%d, %d, %d) %s",
+                            roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                            colorData.r, colorData.g, colorData.b,
+                            legend);
+                    #endif
+                }
+                for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
+                    if (isFlash) {
+                        previousColor[i-1].previousColor = leds.getPixelColor(i-1);
+                    }
+                    leds.setPixelColor(i-1, leds.Color(r, g, b));
+                }
+            }
+        }
+    } else {
+        roomTable_s roomData = roomTable[roomOrGroup];              // Load room
+        uint8_t intensity;
+        if (!roomData.intensity || !otherIntensity) {               // If one intensity is zero
+            intensity = 0;                                          // Intensity = 0
+        } else {                                                    // Else compute average
+            intensity = (roomData.intensity + otherIntensity+1) >> 1;
+        }
+        uint8_t r = percent(colorData.r, intensity);
+        uint8_t g = percent(colorData.g, intensity);
+        uint8_t b = percent(colorData.b, intensity);
+        if (legend != nullptr) {
+            #ifdef VERSION_FRANCAISE
+                trace_debug_P("LED %d à %d mises à (%d, %d, %d) %s",
+                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                    colorData.r, colorData.g, colorData.b,
+                    legend);
+    #else
+                trace_debug_P("LED %d to %d set to (%d, %d, %d) %s",
+                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                    colorData.r, colorData.g, colorData.b,
+                    legend);
+    #endif
+        }
+        for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
+            if (isFlash) {
+                previousColor[i-1].previousColor = leds.getPixelColor(i-1);
+            }
+            leds.setPixelColor(i-1, leds.Color(r, g, b));
+        }
+    }
+}
+
+// Reset color for room or group
+void revertRoomOrGroup(uint16_t roomOrGroup, char* legend) {
+    if (isGroup(roomOrGroup)) {
+        // Scan all groups lines for this group id
+        uint16_t groupIndex = getGroup(roomOrGroup);                // Get group index
+        for (int i =0; i < groupCount; i++) {
+            if (groupTable[i].crc == groupTable[groupIndex].crc) {  // Are we on the same group?
+                roomTable_s roomData = roomTable[groupTable[i].room];               // Load room from group
+                if (legend != nullptr) {
+                    #ifdef VERSION_FRANCAISE
+                        trace_debug_P("LED %d à %d restaurées %s",
+                            roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                            legend);
+                    #else
+                        trace_debug_P("LED %d to %d restored %s",
+                            roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                            legend);
+                    #endif
+                }
+                for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
+                    leds.setPixelColor(i-1, previousColor[i-1].previousColor);
+                }
+            }
+        }
+    } else {
+        roomTable_s roomData = roomTable[roomOrGroup];              // Load room
+        if (legend != nullptr) {
+            #ifdef VERSION_FRANCAISE
+                trace_debug_P("LED %d à %d restaurées %s",
+                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                    legend);
+            #else
+                trace_debug_P("LED %d to %d restored %s",
+                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                    legend);
+            #endif
+        }
+        for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
+            leds.setPixelColor(i-1, previousColor[i-1].previousColor);
+        }
+    }
 }
 
 // Setup for lights
@@ -1966,19 +2119,19 @@ void lightLoop(void) {
                     trace_info_P("Agenda %d, now %s", agendaIndex+AGENDA_OFFSET, buffer);
                 #endif
                 while (agendaIndex < agendaCount && agendaTable[agendaIndex].time <= simulationTime) {
-                    if (agendaTable[agendaIndex].flags == flagRoom) {
+                    if (agendaTable[agendaIndex].tableType == typeRoom) {
                         setLedAgenda(agendaIndex);
-                    } else if (agendaTable[agendaIndex].flags == flagGroup) {
+                    } else if (agendaTable[agendaIndex].tableType == typeGroup) {
                         setGroupAgenda(agendaIndex);
-                    } else if (agendaTable[agendaIndex].flags == flagFlash) {
+                    } else if (agendaTable[agendaIndex].tableType == typeFlash) {
                         setFlashAgenda(agendaIndex);
-                    } else if (agendaTable[agendaIndex].flags == flagCycle) {
+                    } else if (agendaTable[agendaIndex].tableType == typeCycle) {
                         setCycleAgenda(agendaIndex);
                     } else {
                         #ifdef VERSION_FRANCAISE
-                            trace_error_P("Flag %d ligne %d de l'agenda inconnu", agendaTable[agendaIndex].flags, agendaIndex + AGENDA_OFFSET);
+                            trace_error_P("Flag %d ligne %d de l'agenda inconnu", agendaTable[agendaIndex].tableType, agendaIndex + AGENDA_OFFSET);
                         #else
-                            trace_error_P("Agenda flag %d line %d is unknown", agendaTable[agendaIndex].flags, agendaIndex + AGENDA_OFFSET);
+                            trace_error_P("Agenda flag %d line %d is unknown", agendaTable[agendaIndex].tableType, agendaIndex + AGENDA_OFFSET);
                         #endif
                     }
                     agendaIndex++;
@@ -1999,19 +2152,19 @@ void lightLoop(void) {
                 agendaIndex = 0;                                    // Reset agendaIndex
                 // Position index to start time
                 while (agendaIndex < agendaCount && agendaTable[agendaIndex].time < simulationStart) {
-                    if (agendaTable[agendaIndex].flags == flagRoom) {
+                    if (agendaTable[agendaIndex].tableType == typeRoom) {
                         setLedAgenda(agendaIndex);
-                    } else if (agendaTable[agendaIndex].flags == flagGroup) {
+                    } else if (agendaTable[agendaIndex].tableType == typeGroup) {
                         setGroupAgenda(agendaIndex);
-                    } else if (agendaTable[agendaIndex].flags == flagFlash) {
+                    } else if (agendaTable[agendaIndex].tableType == typeFlash) {
                         setFlashAgenda(agendaIndex);
-                    } else if (agendaTable[agendaIndex].flags == flagCycle) {
+                    } else if (agendaTable[agendaIndex].tableType == typeCycle) {
                         setCycleAgenda(agendaIndex);
                     } else {
                         #ifdef VERSION_FRANCAISE
-                            trace_error_P("Flag %d ligne %d de l'agenda inconnu", agendaTable[agendaIndex].flags, agendaIndex + AGENDA_OFFSET);
+                            trace_error_P("Flag %d ligne %d de l'agenda inconnu", agendaTable[agendaIndex].tableType, agendaIndex + AGENDA_OFFSET);
                         #else
-                            trace_error_P("Agenda flag %d line %d is unknown", agendaTable[agendaIndex].flags, agendaIndex + AGENDA_OFFSET);
+                            trace_error_P("Agenda flag %d line %d is unknown", agendaTable[agendaIndex].tableType, agendaIndex + AGENDA_OFFSET);
                         #endif
                     }
                     agendaIndex++;
@@ -2060,29 +2213,22 @@ void lightLoop(void) {
 
 void activateSequence(const uint16_t sequence) {
     sequenceTable_s sequenceData = sequenceTable[sequence];
-    roomTable_s roomData = roomTable[sequenceData.room];
-    colorTable_s colorData = colorTable[sequenceData.color];
 
-    uint8_t r = percent(colorData.r, roomData.intensity);
-    uint8_t g = percent(colorData.g, roomData.intensity);
-    uint8_t b = percent(colorData.b, roomData.intensity);
-    #ifdef TRACE_SEQUENCE
+    char legend[50];
+    if (traceVerbose) {
         #ifdef VERSION_FRANCAISE
-            trace_info_P("LED %d à %d mises à (%d, %d, %d) pour %d ms (S%dP%dC%d)",
-                roomData.firstLed, roomData.firstLed + roomData.ledCount-1, colorData.r, colorData.g, colorData.b,
-                sequenceData.waitTime, sequence+SEQUENCE_OFFSET, sequenceData.room+ROOM_OFFSET,
-                sequenceData.color+COLOR_OFFSET);
+            snprintf_P(legend, sizeof(legend), "pour %d ms (S%dP%dC%d)",
+                sequenceData.waitTime, sequence+SEQUENCE_OFFSET,
+                sequenceData.roomOrGroup+ROOM_OFFSET, sequenceData.color+COLOR_OFFSET);
         #else
-            trace_info_P("LED %d to %d set to (%d, %d, %d for %d ms (S%dP%dC%d)",
-                roomData.firstLed, roomData.firstLed + roomData.ledCount-1, colorData.r, colorData.g, colorData.b,
-                sequenceData.waitTime, sequence+SEQUENCE_OFFSET, sequenceData.room+ROOM_OFFSET,
-                sequenceData.color+COLOR_OFFSET);
+            snprintf_P(legend, sizeof(legend), "for %d ms (S%dR%dC%d)",
+                sequenceData.waitTime, sequence+SEQUENCE_OFFSET,
+                sequenceData.roomOrGroup+ROOM_OFFSET, sequenceData.color+COLOR_OFFSET);
         #endif
-    #endif
-    // For all LEDs in this room
-    for (int led = roomData.firstLed; led < (roomData.firstLed + roomData.ledCount); led++) {
-        leds.setPixelColor(led-1, leds.Color(r, g, b));
     }
+
+    setRoomOrGroup(sequenceData.roomOrGroup, sequenceData.color,
+        traceVerbose? legend : nullptr, 100, true);
     if (sequenceData.maxWaitTime) {
         cycleTable[sequenceData.cycle].waitTime =
             random (sequenceData.waitTime, sequenceData.maxWaitTime+1); // Random wait time
@@ -2116,7 +2262,6 @@ void activateCycle (const uint8_t cycle, const uint8_t increment) {
 
 void activateFlash (const uint8_t flash) {
     flashTable_s flashData = flashTable[flash];                     // Load flash table
-    roomTable_s roomData = roomTable[flashData.room];               // Load room data
     if (flashData.state == flashStarting                            // Flash sequence starting
             || flashData.state == flashinPause) {                   // Flash ends pause
         if (flashData.repeatMax > flashData.repeatMin) {            // Max > min?
@@ -2135,26 +2280,21 @@ void activateFlash (const uint8_t flash) {
         } else {
             flashData.waitTime = flashData.onMin;
         }
-        colorTable_s colorData = colorTable[flashData.color];       // Load color data
-        uint8_t r = percent(colorData.r, flashData.intensity);
-        uint8_t g = percent(colorData.g, flashData.intensity);
-        uint8_t b = percent(colorData.b, flashData.intensity);
-        // For all LEDs specified by user
+        char legend[50] = {0};
+        if (traceVerbose) {
         #ifdef TRACE_FLASH
             #ifdef VERSION_FRANCAISE
-                trace_info_P("LED %d à %d mises à (%d, %d, %d) (F%dP%d)",
-                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    r, g, b, flash+FLASH_OFFSET, flashData.room+ROOM_OFFSET);
+                    snprintf_P(legend, sizeof(legend), "(F%dP%d)",
+                        flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
             #else
-                trace_info_P("LED %d to %d set to (%d, %d, %d) (F%dP%d)",
-                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    r, g, b, flash+FLASH_OFFSET, flashData.room+ROOM_OFFSET));
+                    snprintf_P(legend, sizeof(legend), "(F%dR%d)",
+                        flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
             #endif
         #endif
-        flashData.previousColor = leds.getPixelColor(roomData.firstLed-1);
-        for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
-            leds.setPixelColor(i-1, leds.Color(r, g, b));
         }
+        setRoomOrGroup(flashData.roomOrGroup, flashData.color,
+            traceVerbose? legend : nullptr,
+            flashData.intensity, true);                             // Set color for room or group, saving previous color
     } else if (flashData.state == flashIsOn) {                      // Flash is on
         if (!flashData.pendingRepeats) {                            // No more repeat pending
             flashData.state = flashinPause;
@@ -2174,20 +2314,18 @@ void activateFlash (const uint8_t flash) {
             }
         }
         // For all LEDs in this room
-        #ifdef TRACE_FLASH
+        char legend[50];
+        if (traceVerbose) {
             #ifdef VERSION_FRANCAISE
-                trace_info_P("LED %d à %d mises à %06x (F%dP%d)",
-                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    flashData.previousColor, flash+FLASH_OFFSET, flashData.room+ROOM_OFFSET);
+                snprintf_P(legend, sizeof(legend), "(F%dP%d)",
+                    flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
             #else
-                trace_info_P("LED %d to %d set to %06x (F%dR%d)",
-                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    flashData.previousColor, flash+FLASH_OFFSET, flashData.room+ROOM_OFFSET);
+                snprintf_P(legend, sizeof(legend), "(F%dR%d)",
+                    flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
             #endif
-        #endif
-        for (int led = roomData.firstLed; led < (roomData.firstLed + roomData.ledCount); led++) {
-            leds.setPixelColor(led-1, flashData.previousColor);
         }
+        revertRoomOrGroup(flashData.roomOrGroup,
+            traceVerbose? legend : nullptr);
     }
     flashData.lastRunTime = millis();                               // Save last change date
     flashTable[flash] = flashData;                                  // Save modified data
@@ -2251,12 +2389,12 @@ void startLight(void) {
         clearAllLights();
         // Play one time all events
         while (agendaIndex < agendaCount) {
-            trace_debug_P("Index %d, flag %d", agendaIndex, agendaTable[agendaIndex].flags); ////
-            if (agendaTable[agendaIndex].flags == flagRoom) {
+            trace_debug_P("Index %d, flag %d", agendaIndex, agendaTable[agendaIndex].tableType); ////
+            if (agendaTable[agendaIndex].tableType == typeRoom) {
                 setLedAgenda(agendaIndex);
-            } else if (agendaTable[agendaIndex].flags == flagGroup) {
+            } else if (agendaTable[agendaIndex].tableType == typeGroup) {
                 setGroupAgenda(agendaIndex);
-            } else if (agendaTable[agendaIndex].flags == flagFlash) {
+            } else if (agendaTable[agendaIndex].tableType == typeFlash) {
                 setFlashAgenda(agendaIndex);
             } else {
                 setCycleAgenda(agendaIndex);
@@ -2266,12 +2404,12 @@ void startLight(void) {
         agendaIndex = 0;
         // Position index to start time
         while (agendaIndex < agendaCount && agendaTable[agendaIndex].time < simulationStart) {
-            //trace_debug_P("Index %d, flag %d, time %d, start %d", agendaIndex, agendaTable[agendaIndex].flags, agendaTable[agendaIndex].time < simulationStart); ////
-            if (agendaTable[agendaIndex].flags == flagRoom) {
+            //trace_debug_P("Index %d, flag %d, time %d, start %d", agendaIndex, agendaTable[agendaIndex].tableType, agendaTable[agendaIndex].time < simulationStart); ////
+            if (agendaTable[agendaIndex].tableType == typeRoom) {
                 setLedAgenda(agendaIndex);
-            } else if (agendaTable[agendaIndex].flags == flagGroup) {
+            } else if (agendaTable[agendaIndex].tableType == typeGroup) {
                 setGroupAgenda(agendaIndex);
-            } else if (agendaTable[agendaIndex].flags == flagFlash) {
+            } else if (agendaTable[agendaIndex].tableType == typeFlash) {
                 setFlashAgenda(agendaIndex);
             } else {
                 setCycleAgenda(agendaIndex);
@@ -2284,81 +2422,32 @@ void startLight(void) {
 
 // Set light as specified in a given agenda line number
 void setLedAgenda(const uint16_t agendaPtr) {
-    roomTable_s roomData;
-    colorTable_s colorData;
-    agendaTable_s agendaData;
-    uint8_t intensity;
+    agendaTable_s agendaData = agendaTable[agendaIndex];            // Get agenda data
 
-    agendaData = agendaTable[agendaIndex];                          // Get agenda data
-    roomData = roomTable[agendaData.tableIndex];                    // Get room data
-    colorData = colorTable[agendaData.otherData];                   // Get color data
-    if (!roomData.intensity || !agendaData.intensity) {             // If one intensity is zero
-        intensity = 0;                                              // Intensity = 0
-    } else {                                                        // Else compute average
-        intensity = (roomData.intensity + agendaData.intensity+1) >> 1;
-    }
-
-    uint8_t r = percent(colorData.r, intensity);
-    uint8_t g = percent(colorData.g, intensity);
-    uint8_t b = percent(colorData.b, intensity);
+    char legend[50];
     #ifdef VERSION_FRANCAISE
-        trace_info_P("LED %d à %d mises à (%d, %d, %d) (A%dP%dC%d)",
-            roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-            colorData.r, colorData.g, colorData.b,
+        snprintf_P(legend, sizeof(legend), "(A%dP%dC%d)",
             agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
     #else
-        trace_info_P("LED %d to %d set to (%d, %d, %d) (A%dR%dC%d)",
-            roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-            colorData.r, colorData.g, colorData.b,
+        snprintf_P(legend, sizeof(legend), "(A%R%dC%d)",
             agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
     #endif
-    // For all LEDs in this room
-    for (int led = roomData.firstLed; led < (roomData.firstLed + roomData.ledCount); led++) {
-        leds.setPixelColor(led-1, leds.Color(r, g, b));
-    }
+    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend,agendaData.intensity);
 }
 
 // Set group of light as specified in a given agenda line number
 void setGroupAgenda(const uint16_t agendaPtr) {
-    roomTable_s roomData;
-    colorTable_s colorData;
-    agendaTable_s agendaData;
-    uint8_t intensity;
+    agendaTable_s agendaData = agendaTable[agendaIndex];            // Get agenda data
 
-    agendaData = agendaTable[agendaIndex];                          // Get agenda data
-    // Scan all groups lines for this group id
-    for (int i =0; i < groupCount; i++) {
-        if (groupTable[i].crc == groupTable[agendaData.tableIndex].crc) { // Are we on the same group?
-            roomData = roomTable[groupTable[i].room];               // Load room from group
-            colorData = colorTable[agendaData.otherData];           // Get color data from agenda
-            if (!roomData.intensity || !agendaData.intensity) {     // If one intensity is zero
-                intensity = 0;                                      // Intensity = 0
-            } else {                                                // Else compute average
-                intensity = (roomData.intensity + agendaData.intensity+1) >> 1;
-            }
-
-            uint8_t r = percent(colorData.r, intensity);
-            uint8_t g = percent(colorData.g, intensity);
-            uint8_t b = percent(colorData.b, intensity);
+    char legend[50];
             #ifdef VERSION_FRANCAISE
-                trace_info_P("LED %d à %d mises à (%d, %d, %d) (A%dG%dP%dC%d)",
-                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    colorData.r, colorData.g, colorData.b,
-                    agendaIndex+AGENDA_OFFSET, agendaData.tableIndex+GROUP_OFFSET, groupTable[i].room+ROOM_OFFSET,
-                    agendaData.otherData+COLOR_OFFSET);
+        snprintf_P(legend, sizeof(legend), "(A%dG%dC%d)",
+            agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
             #else
-                trace_info_P("LED %d to %d set to (%d, %d, %d) (A%dG%dR%dC%d)",
-                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    colorData.r, colorData.g, colorData.b,
-                    agendaIndex+AGENDA_OFFSET, agendaData.tableIndex+GROUP_OFFSET, groupTable[i].room+ROOM_OFFSET,
-                    agendaData.otherData+COLOR_OFFSET);
+        snprintf_P(legend, sizeof(legend), "(A%G%dC%d)",
+            agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
             #endif
-            // For all LEDs in this room
-            for (int led = roomData.firstLed; led < (roomData.firstLed + roomData.ledCount); led++) {
-                leds.setPixelColor(led-1, leds.Color(r, g, b));
-            }
-        }
-    }
+    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend,agendaData.intensity);
 }
 
 // Set cycle as specified in a given agenda line number
@@ -2384,10 +2473,7 @@ void setCycleAgenda(const uint16_t agendaPtr) {
         for (int i=0; i < sequenceCount; i++) {                     // Scan all sequences
             sequenceData = sequenceTable[i];                        // Load sequence data
             if (sequenceData.color == agendaData.tableIndex) {      // Are we on the corresponding cycle?
-                roomTable_s roomData = roomTable[sequenceData.room];// Load room
-                for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) { // For all LED in room
-                    leds.setPixelColor(i-1, leds.Color(0, 0, 0));   // Clear LED
-                }
+                setRoomOrGroup(sequenceData.roomOrGroup, 0);
             }
         }
     }
@@ -2415,10 +2501,7 @@ void setFlashAgenda(const uint16_t agendaPtr) {
     } else {
         flashTable[flashPtr] = flashData;                           // Save modified data
         // Stop flash, turn all associated lights off
-        roomTable_s roomData = roomTable[flashData.room];           // Load room
-        for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) { // For all LED in room
-            leds.setPixelColor(i-1, flashData.previousColor);       // Restore LED
-        }
+        revertRoomOrGroup(flashData.roomOrGroup);                   // Restore led data
     }
 }
 
@@ -2453,7 +2536,7 @@ void sendLight(void) {
         flashTable_s flashData = flashTable[flashPtr];              // Get flash data
         // Activate flash
         flashData.state = flashStarting;
-        flashData.room = roomCount;
+        flashData.roomOrGroup = roomCount;
         flashData.color = colorCount;
         flashTable[flashPtr] = flashData;                           // Save modified data
         activateFlash(flashPtr);                                    // Activate flash sequence
@@ -2600,6 +2683,15 @@ int signalError(const int errorCode, const int integerValue,  const char* string
                     integerValue, fileLineNumber, configurationName);
             #endif
             break;
+        case 111:
+            #ifdef VERSION_FRANCAISE
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
+                    "Pièce ou groupe >%s< inconnue, ligne %d de %s", stringValue, fileLineNumber, configurationName);
+            #else
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
+                    "Room or group >%s< not found line %d of %s", stringValue, fileLineNumber, configurationName);
+            #endif
+            break;
         default:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
@@ -2728,27 +2820,27 @@ int readFile(const char* readFileName, int (*callback)(READ_FILE_PARAMETERS)) {
 // Read file header callback
 int readAllHeaders(READ_FILE_PARAMETERS) {
     if (fileFormat == unknownFileFormat) {                          // We're not in a table description
-        if (startWith(fileLineData, roomName)) {
+        if (startWith(fileLineData, roomName) || startWith(fileLineData, roomName2)) {
             if (roomCount) {
                 return signalError(103, 0, roomName);
             }
             fileFormat = roomFileFormat;
-        } else if (startWith(fileLineData, groupName)) {
+        } else if (startWith(fileLineData, groupName) || startWith(fileLineData, groupName2)) {
             if (groupCount) {
                 return signalError(103, 0, groupName);
             }
             fileFormat = groupFileFormat;
-        } else if (startWith(fileLineData, flashName)) {
+        } else if (startWith(fileLineData, flashName) || startWith(fileLineData, flashName2)) {
             if (flashCount) {
                 return signalError(103, 0, flashName);
             }
             fileFormat = flashFileFormat;
-        } else if (startWith(fileLineData, colorName)) {
+        } else if (startWith(fileLineData, colorName) || startWith(fileLineData, colorName2)) {
             if (colorCount) {
                 return signalError(103, 0, colorName);
             }
             fileFormat = colorFileFormat;
-        } else if (startWith(fileLineData, cycleName)) {
+        } else if (startWith(fileLineData, cycleName) || startWith(fileLineData, cycleName2)) {
             if (cycleCount) {
                 return signalError(103, 0, cycleName);
             }
@@ -2790,20 +2882,18 @@ int readAllHeaders(READ_FILE_PARAMETERS) {
 int readAllTables(READ_FILE_PARAMETERS) {
     int errorCode = 0;
     if (fileFormat == unknownFileFormat) {                          // We're not in a table description
-        if (startWith(fileLineData, roomName)) {
+        if (startWith(fileLineData, roomName) || startWith(fileLineData, roomName2)) {
             fileFormat = roomFileFormat;
-        } else if (startWith(fileLineData, groupName)) {
+        } else if (startWith(fileLineData, groupName) || startWith(fileLineData, groupName2)) {
             fileFormat = groupFileFormat;
-        } else if (startWith(fileLineData, flashName)) {
+        } else if (startWith(fileLineData, flashName) || startWith(fileLineData, flashName2)) {
             fileFormat = flashFileFormat;
-        } else if (startWith(fileLineData, colorName)) {
+        } else if (startWith(fileLineData, colorName) || startWith(fileLineData, colorName2)) {
             fileFormat = colorFileFormat;
-        } else if (startWith(fileLineData, cycleName)) {
+        } else if (startWith(fileLineData, cycleName) || startWith(fileLineData, cycleName2)) {
             fileFormat = cycleFileFormat;
         } else if (startWith(fileLineData, "Date;")) {
             fileFormat = agendaFileFormat;
-        } else {
-            return signalError(101, 0, (char*) fileLineData);
         }
         tableLineNumber = 0;                                        // Reset table line number
     } else {                                                        // We're in a table definition
@@ -2895,9 +2985,16 @@ int readAllTables(READ_FILE_PARAMETERS) {
                         if (roomTable[i].crc == crc) break;         // We found it
                     }
                     if (i < roomCount) {
-                        sequenceTable[index].room = i;
+                        sequenceTable[index].roomOrGroup = i;
                     } else {
-                        return signalError(107, 0, field);
+                        for (i = 0; i <groupCount; i++) {           // Scan all groups for name
+                            if (groupTable[i].crc == crc) break;    // We found it
+                        }
+                        if (i < groupCount) {
+                            sequenceTable[index].roomOrGroup = setGroup(i);
+                    } else {
+                            return signalError(111, 0, field);
+                        }
                     }
                 } else if (fieldCount == 3) {                       // Color
                     uint32 crc = calculateCRC32(field, strlen(field));
@@ -2931,9 +3028,16 @@ int readAllTables(READ_FILE_PARAMETERS) {
                         if (roomTable[i].crc == crc) break;         // We found it
                     }
                     if (i < roomCount) {
-                        flashTable[index].room = i;                 // Room index
+                        flashTable[index].roomOrGroup = i;          // Room or group  index
                     } else {
-                        return signalError(107, 0, field);
+                        for (i = 0; i <groupCount; i++) {           // Scan all groups for name
+                            if (groupTable[i].crc == crc) break;    // We found it
+                        }
+                        if (i < groupCount) {
+                            flashTable[index].roomOrGroup = setGroup(i);
+                        } else {
+                            return signalError(111, 0, field);
+                        }
                     }
                 } else if (fieldCount == 3) {                       // Color
                     uint32 crc = calculateCRC32(field, strlen(field));
@@ -3001,28 +3105,28 @@ int readAllTables(READ_FILE_PARAMETERS) {
                         if (roomTable[i].crc == crc) break;         // We found it
                     }
                     if (i < roomCount) {
-                        agendaTable[index].flags = flagRoom;        // Agenda type = room
+                        agendaTable[index].tableType = typeRoom;    // Agenda type = room
                         agendaTable[index].tableIndex = i;
                     } else {
                         for (i = 0; i <groupCount; i++) {           // Scan all groups for name
                             if (groupTable[i].crc == crc) break;    // We found it
                         }
                         if (i < groupCount) {
-                            agendaTable[index].flags = flagGroup;   // Agenda type = group
+                            agendaTable[index].tableType = typeGroup;   // Agenda type = group
                             agendaTable[index].tableIndex = i;
                         } else {
                             for (i = 0; i <cycleCount; i++) {       // Scan all cycles for name
                                 if (cycleTable[i].crc == crc) break;// We found it
                             }
                             if (i < cycleCount) {
-                                agendaTable[index].flags = flagCycle;   // Agenda type = cycle
+                                agendaTable[index].tableType = typeCycle;   // Agenda type = cycle
                                 agendaTable[index].tableIndex = i;
                             } else {
                                 for (i = 0; i <flashCount; i++) {   // Scan all flashes for name
                                     if (flashTable[i].crc == crc) break; // We found it
                                 }
                                 if (i < flashCount) {
-                                    agendaTable[index].flags = flagFlash; // Agenda type = flash
+                                    agendaTable[index].tableType = typeFlash; // Agenda type = flash
                                     agendaTable[index].tableIndex = i;
                                 } else {
                                     return signalError(107, 0, field);
@@ -3031,7 +3135,7 @@ int readAllTables(READ_FILE_PARAMETERS) {
                         }
                     }
                 } else if (fieldCount == 3) {                       // Color
-                    if (agendaTable[index].flags == flagRoom) {     // On a room?
+                    if (agendaTable[index].tableType == typeRoom) { // On a room?
                         uint32 crc = calculateCRC32(field, strlen(field));
                         for (i = 0; i < colorCount; i++) {          // Scan all room for name
                             if (colorTable[i].crc == crc) break;    // We found it
@@ -3041,7 +3145,7 @@ int readAllTables(READ_FILE_PARAMETERS) {
                         } else {
                             return signalError(108, 0, field);
                         }
-                    } else if (agendaTable[index].flags == flagCycle || agendaTable[index].flags == flagFlash) {
+                    } else if (agendaTable[index].tableType == typeCycle || agendaTable[index].tableType == typeFlash) {
                         agendaTable[index].otherData = atol(field);
                     }
                 } else if (fieldCount == 4) {                       // Intensity
@@ -3174,6 +3278,9 @@ int loadAgendaDetails(void) {
     delete[] colorTable;
     delete[] groupTable;
     delete[] roomTable;
+    delete[] previousColor;
+    previousColor = new previousColor_s[ledCount];                  // Create previous color table
+    memset(previousColor, 0, (ledCount) * sizeof(previousColor_s));
     roomTable = new roomTable_s[roomCount+1];                       // Create room table
     memset(roomTable, 0, (roomCount+1) * sizeof(roomTable_s));
     groupTable = new groupTable_s[groupCount];                      // Create group table
@@ -3195,7 +3302,7 @@ int loadAgendaDetails(void) {
     colorTable[colorCount].r = 255;                                 // LED Red level (0-255)
     colorTable[colorCount].g = 255;                                 // LED Green level (0-255)
     colorTable[colorCount].b = 255;                                 // LED Blue level (0-255)
-    flashTable[flashCount].room = roomCount;                        // Pointer to room
+    flashTable[flashCount].roomOrGroup = roomCount;                 // Pointer to room
     flashTable[flashCount].color = colorCount;                      // Pointer to color
     flashTable[flashCount].intensity = 100;                         // Flash intensity
     flashTable[flashCount].onMin = 1;                               // Minimum on time
@@ -3210,59 +3317,57 @@ int loadAgendaDetails(void) {
     errorCode = readFile(fileToStart.c_str(), &readAllTables);      // Load all tables
     if (errorCode) return errorCode;
 
-    #ifdef DUMP_TABLES
-        trace_debug_P("Idx 1st Cnt Int (%s)", roomName);
+    trace_debug_P("Row 1st Cnt Int (%s)", roomName);
         for (int i = 0; i < roomCount; i++) {
             trace_debug_P("%3d %3d %3d %3d", i,
                 roomTable[i].firstLed, roomTable[i].ledCount,roomTable[i].intensity);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-        trace_debug_P("Idx     Name Rom (%s)", groupName);
+    trace_debug_P("Row     Name Rom (%s)", groupName);
         for (int i = 0; i < groupCount; i++) {
             trace_debug_P("%3d %8x %3d", i,
                 groupTable[i].crc, groupTable[i].room);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-        trace_debug_P("Idx   R   G   B (%s)", colorName);
+    trace_debug_P("Row   R   G   B (%s)", colorName);
         for (int i = 0; i < colorCount; i++) {
             trace_debug_P("%3d %3d %3d %3d", i,
                 colorTable[i].r, colorTable[i].g, colorTable[i].b);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-        trace_debug_P("Idx Rom Flg OnMin OnMax OfMin OfMax RpMin RpMax PsMin PsMax (%s)", flashName);
+    trace_debug_P("Row Idex Flg OnMin OnMax OfMin OfMax RpMin RpMax PsMin PsMax (%s)", flashName);
         for (int i = 0; i < flashCount; i++) {
-            trace_debug_P("%3d %3d %3d %5d %5d %5d %5d %5d %5d %5d %5d", i,
-                flashTable[i].room, flashTable[i].color,
+        trace_debug_P("%3d %4d %3d %5d %5d %5d %5d %5d %5d %5d %5d", i,
+            flashTable[i].roomOrGroup, flashTable[i].color,
                 flashTable[i].onMin, flashTable[i].onMax,
                 flashTable[i].offMin, flashTable[i].offMax,
                 flashTable[i].repeatMin, flashTable[i].repeatMax,
                 flashTable[i].pauseMin, flashTable[i].pauseMax);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-        trace_debug_P("Idx Run Act Cnt  Wait (%s)", cycleName);
+    trace_debug_P("Row Run Act Cnt  Wait (%s)", cycleName);
         for (int i = 0; i < cycleCount; i++) {
             trace_debug_P("%3d %3d %3d %3d %5d", i,
                 cycleTable[i].isActive, cycleTable[i].activeSequence,
                 cycleTable[i].sequenceCount, cycleTable[i].waitTime);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-        trace_debug_P("Idx Cyc Seq Rom Clr  Wait MaxWt (Sequence)", NULL);
+    trace_debug_P("Row Cyc Seq Idex Clr  Wait MaxWt (Sequence)", NULL);
         for (int i = 0; i < sequenceCount; i++) {
-            trace_debug_P("%3d %3d %3d %3d %3d %5d %5d", i,
+        trace_debug_P("%3d %3d %3d %4d %3d %5d %5d", i,
                 sequenceTable[i].cycle, sequenceTable[i].sequence,
-                sequenceTable[i].room, sequenceTable[i].color,
+            sequenceTable[i].roomOrGroup, sequenceTable[i].color,
                 sequenceTable[i].waitTime, sequenceTable[i].maxWaitTime);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-        trace_debug_P("Idx Flg Time Ind Oth Int (%s)", agendaName);
+    trace_debug_P("Row Flg Time Ind Oth Int (%s)", agendaName);
         for (int i = 0; i < agendaCount; i++) {
             trace_debug_P("%3d %3d %4d %3d %3d %3d", i,
-                agendaTable[i].flags, agendaTable[i].time,
+            agendaTable[i].tableType, agendaTable[i].time,
                 agendaTable[i].tableIndex, agendaTable[i].otherData,
                 agendaTable[i].intensity);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-    #endif
     return 0;
 }
 
