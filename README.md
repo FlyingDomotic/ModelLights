@@ -77,18 +77,18 @@ Headers of empty sections can be omitted.
 
 Here's an example of empty file:
 ```
-Rooms;First LED;LED count;Luminosity # Header fr rooms
+Rooms;First LED;LED count;Luminosity # Rooms table starts here
 
-Groups;Room # Header for groups
+Groups;Room # Groups table starts here
 
-Colors;Red;Green;Blue # Header for colors
-Black;0;0;0 # Black color as first color
+Colors;Red;Green;Blue # Colors table start here
+Black;0;0;0           # First color is used to turn LED off
 
-Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause # Header for flashes
+Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause # Flashes table starts here
 
-Cycles;Room;Color;MinWaitTime;MaxWaitTime # Header for cycles
+Cycles;Room/group;Color;MinWaitTime;MaxWaitTime # Cycles tables starts here
 
-Date;Room;Color;Luminosity # Header for agenda
+Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
 
 ```
 FYI, only first zone of each header is tested (and should be identical to this example). It's possible to modify all other header fields to match your requirements.
@@ -151,11 +151,11 @@ Red;255;0;0
 
 They allow to program sequences for turning light on and off, in any order, giving any color, and with a different duration between each change. Traffic lights are good example.
 
-You have to give cycle name, room name, color to set, time (milliseconds) to wait before next step and optionally a high limit for (random) wait.
+You have to give cycle name, room or group name, color to set, time (milliseconds) to wait before next step and optionally a high limit for (random) wait.
 
 For example, to define a traffic lights with 2 directions (Light1 for a direction and light 2 for the perpendicular one), you may specify it as:
 ```
-Cycles;Room;Color;MinWaitTime;MaxWaitTime
+Cycles;Room/group;Color;MinWaitTime;MaxWaitTime
 TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
 TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
 TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
@@ -177,7 +177,7 @@ if `MaxWaitTime` is defined, wait time will be a random time between `MinWaitTim
 
 Don't forget ti activate `TrafficLight` cycle in agenda (as described later, using:
 ```
-Date;Room;Color;Luminosity
+Date;Room/group/cycle/flash;Color/active;Luminosity
 00:00;TrafficLight;1 #Activate "TrafficLight" cycle at midnight.
 
 ```
@@ -199,9 +199,9 @@ Green;0;255;0
 Orange;255;128;0
 Red;255;0;0
 
-Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
 
-Cycles;Room;Color;MinWaitTime;MaxWaitTime
+Cycles;Room/group;Color;MinWaitTime;MaxWaitTime
 TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
 TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
 TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
@@ -216,36 +216,97 @@ TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
 TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
 TrafficLight;Light1Red # Turn light 1 Red off, without waiting
 
-Date;Room;Color;Luminosity
+Date;Room/group/cycle/flash;Color/active;Luminosity
 00:00;TrafficLight;1
 
 ```
+
+To have a version with 2 traffic lights per way, we can define lights 3 and 4 the same way as 1 and 2, define groups for each way and color, and use these groups.
+
+For example:
+```
+Rooms;First LED;LED count;Luminosity # Rooms table starts here
+L1G;1;1;100
+L1O;2;1;100
+L1R;3;1;100
+L2G;4;1;100
+L2O;5;1;100
+L2R;6;1;100
+L3G;7;1;100
+L3O;8;1;100
+L3R;9;1;100
+L4G;10;1;100
+L4O;11;1;100
+L4R;12;1;100
+
+Groups;Room # Groups table starts here
+Light1Green;L1G
+Light1Green;L3G
+Light1Orange;L1O
+Light1Orange;L3O
+Light1Red;3;1;L1R
+Light1Red;3;1;L3R
+Light2Green;L2G
+Light2Green;L4G
+Light2Orange;L2O
+Light2Orange;L4O
+Light2Red;L2R
+Light2Red;L4R
+
+Colors;Red;Green;Blue # Colors table start here
+Black;0;0;0
+Green;0;255;0
+Orange;255;128;0
+Red;255;0;0
+
+Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause # Flashes table starts here
+
+Cycles;Room/group;Color;MinWaitTime;MaxWaitTime # Cycles tables starts here
+TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
+TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
+TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
+TrafficLight;Light1Orange;Orange;1000 # Turn light 1 orange on and wait for one second
+TrafficLight;Light1Orange # Turn light 1 orange off, without waiting
+TrafficLight;Light1Red;Red;2000 # Turn light 1 Red on and wait for 2 seconds
+TrafficLight;Light2Red; # Turn light 2 Red off, without waiting
+TrafficLight;Light2Green;Green;5000 # Turn light 2 Green on and wait for 5 seconds
+TrafficLight;Light2Green # Turn light 2 Green off, without waiting
+TrafficLight;Light2Orange;Orange;1000 # Turn light 2 orange on and wait for one second
+TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
+TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
+TrafficLight;Light1Red # Turn light 1 Red off, without waiting
+
+Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
+00:00;TrafficLight;1
+
+```
+
 ### Flashes
 
 They allow to flash lights at regular (or not) interval.
 
 Note that after a flash, previous LEd color and intensity is restored.
 
-You have to specify flash name, minimal light on, light off and pause between sequences in milliseconds, as well as count of repetition. You may also specify random values giving `Max` value in addition to `Min`.
+You have to specify flash name, room or group name, minimal light on, light off and pause between sequences in milliseconds, as well as count of repetition. You may also specify random values giving `Max` value in addition to `Min`.
 
 for example, and minimum activation time of 10 and a maximum of 100 will produce a random value between 10 and 100 (inclusive) at each activation.
 
 To get a flash every seconds, use :
 ```
-Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
 Flash 1;R1;White;1;0;0;0;1;0;1000;0
 
 ```
 
 For 3 short (1 ms) flashes followed by a one second wait, use:
 ```
-Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
 Flash 2;R1;White;1;0;1;0;3;0;1000;0
 
 ```
 An arc welding simulation can be as:
 ```
-Flashes;Room;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
+Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause
 Arc Welding;R1;White;10;30;5;20;5;30;20;5000
 
 ```
@@ -263,7 +324,7 @@ For cycles and flashes, you have to give simulation time, cycle or flash name, a
 
 For example:
 ```
-Date;Room;Color;Luminosity
+Date;Room/group/cycle/flash;Color/active;Luminosity
 06:00;Flash 1 # Deactivate flash 1 at 6AM (it's activated at 8PM)
 09:30;Arc Welding;1 # Activate "Arc Welding" flash at 9:30AM
 10:00;Arc Welding # Deactivate "Arc Welding" flash at 10AM
@@ -623,18 +684,19 @@ Si on ne respecte pas cet ordre, on aura un message d'erreur indiquant qu'une pi
 
 Voici un exemple de fichier vide :
 ```
-Pieces;Premiere lampe;Nombre de lampes;Luminosite # Entete des pièces
+Pieces;Premiere lampe;Nombre de lampes;Luminosite # Table des pieces
 
-Groupes;Piece # Entete des groupes
+Groupes;Piece # Table des groupes
 
-Couleurs;Rouge;Vert;Bleu # Entete des couleurs
-Noir;0;0;0
+Couleurs;Rouge;Vert;Bleu # Table des couleurs
+Noir;0;0;0               # La premiere couleur est utilisee pour eteindre les LEDS
 
-Cycles;Piece;Couleur;Attente;Attente max # Entete des cycles
+Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi # Table des flashs
 
-Cycles;Piece;Couleur;Attente;Attente max
+Cycles;Piece/groupe;Couleur;Attente mini;Attente maxi # Table des cycles
 
-Date;Piece;Couleur;Luminosite # Entete de l'agenda
+Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
+
 ```
 Pour information, seule la première zone de chaque entête est testé (et doit être identique a celles de cet exemple). Il est possible de modifier les autres zones  d'entête pour les faire correspondre à ses besoins.
 
@@ -696,11 +758,11 @@ Rouge;255;0;0
 
 Ils permettent de programmer des suites d'allumages et d'extinctions dans un ordre quelconque, en spécifiant une durée différente entre chaque changement. Les feux de signalisation sont un bon exemple.
 
-On indique le nom de la séquence, le nom de la pièce, la couleur à affecter, la durée d'attente après l'activation de la séquence, et un éventuel aléa.
+On indique le nom de la séquence, le nom de la pièce ou du groupe, la couleur à affecter, la durée d'attente après l'activation de la séquence, et un éventuel aléa.
 
 Par exemple, pour définir un cycle de feux tricolores, avec 2 feux (Feu1 sur un sens de circulation, Feu 2 sur le sens perpendiculaire), on procède de la façon suivante :
 ```
-Cycles;Piece;Couleur;Attente;Attente max
+Cycles;Piece/groupe;Couleur;Attente;Attente max
 Croisement;Feu2Rouge;Rouge #Allume le feu 2, en rouge, à 100% sans attente après l'allumage
 Croisement;Feu1Vert;Vert;5000 #Allume le feu 1 en vert et attend 5 secondes
 Croisement;Feu1Vert; #Éteint le feu 1 vert, sans attente après l'extinction
@@ -722,7 +784,7 @@ Si "Attente max" est définie, le temps d'attente utilisé sera une valeur aléa
 
 Ne pas oublier d'activer le cycle "Croisement" dans l'agenda (décrit plus loin), par un :
 ```
-Date;Piece;Couleur;Luminosite
+Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite
 00:00;Croisement;1 #Active le cycle "Croisement" à 0h00
 
 ```
@@ -742,27 +804,84 @@ Vert;0;255;0
 Orange;255;128;0
 Rouge;255;0;0
 
-Cycles;Piece;Couleur;Attente;Attente max # Entete des cycles
-Cycles;Piece;Couleur;Attente;Attente max
-Croisement;Feu2Rouge;Rouge #Allume le feu 2, en rouge, à 100% sans attente après l'allumage
-Croisement;Feu1Vert;Vert;5000 #Allume le feu 1 en vert et attend 5 secondes
-Croisement;Feu1Vert; #Éteint le feu 1 vert, sans attente après l'extinction
-Croisement;Feu1Orange;Orange;1000 #Allume le feu 1 en orange et attend une seconde
-Croisement;Feu1Orange #Éteint le feu 1 orange, sans attente après l'extinction
-Croisement;Feu1Rouge;Rouge;2000 #Allume le feu 1 en rouge et attend 2 secondes
-Croisement;Feu2Rouge; #Éteint le feu 2 rouge, sans attente après l'extinction
-Croisement;Feu2Vert;Vert;5000 #Allume le feu 2 en vert et attend 5 secondes
-Croisement;Feu2Vert #Éteint le feu 2 vert, sans attente après l'extinction
-Croisement;Feu2Orange;Orange;1000 #Allume le feu 2 en orange et attend une seconde
-Croisement;Feu2Orange #Éteint le feu 2 orange, sans attente après l'extinction
-Croisement;Feu2Rouge;Rouge;2000 #Allume le feu 2 en rouge et attend 2 secondes
-Croisement;Feu1Rouge #Éteint le feu 1 rouge, sans attente après l'extinction
+Cycles;Piece/groupe;Couleur;Attente;Attente max # Entete des cycles
+Croisement;Feu2Rouge;Rouge # Allume le feu 2, en rouge, à 100% sans attente après l'allumage
+Croisement;Feu1Vert;Vert;5000 # Allume le feu 1 en vert et attend 5 secondes
+Croisement;Feu1Vert; # Éteint le feu 1 vert, sans attente après l'extinction
+Croisement;Feu1Orange;Orange;1000 # Allume le feu 1 en orange et attend une seconde
+Croisement;Feu1Orange # Éteint le feu 1 orange, sans attente après l'extinction
+Croisement;Feu1Rouge;Rouge;2000 # Allume le feu 1 en rouge et attend 2 secondes
+Croisement;Feu2Rouge; # Éteint le feu 2 rouge, sans attente après l'extinction
+Croisement;Feu2Vert;Vert;5000 # Allume le feu 2 en vert et attend 5 secondes
+Croisement;Feu2Vert # Éteint le feu 2 vert, sans attente après l'extinction
+Croisement;Feu2Orange;Orange;1000 # Allume le feu 2 en orange et attend une seconde
+Croisement;Feu2Orange # Éteint le feu 2 orange, sans attente après l'extinction
+Croisement;Feu2Rouge;Rouge;2000 # Allume le feu 2 en rouge et attend 2 secondes
+Croisement;Feu1Rouge # Éteint le feu 1 rouge, sans attente après l'extinction
 
-Date;Piece;Couleur;Luminosite # Entete de l'agenda
+Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Entete de l'agenda
 00:00;Croisement;1 #Active le cycle "Croisement" à 0h00
 
 ```
 Pour passer à une version à 2 feux sur chaque sens de circulation, on peut par exemple définir les feux 3 et 4 de la même façon que 1 et 2, définir des groupes pour chaque couleur et sens de circulation, puis d'utiliser ces groupes à la place des pièces.
+
+Par exemple :
+```
+Pieces;Premiere lampe;Nombre de lampes;Luminosite # Table des pieces
+F1V;1;1;100
+F1O;2;1;100
+F1R;3;1;100
+F2V;4;1;100
+F2O;5;1;100
+F2R;6;1;100
+F3V;7;1;10
+F3O;8;1;10
+F3R;9;1;10
+F4V;10;1;10
+F4O;11;1;10
+F4R;12;1;10
+
+Groupes;Piece # Table des groupes
+Feu1Vert;F1V
+Feu1Vert;F3V
+Feu1Orange;F1O
+Feu1Orange;F3O
+Feu1Rouge;F1R
+Feu1Rouge;F3R
+Feu2Vert;F2V
+Feu2Vert;F4V
+Feu2Orange;F2O
+Feu2Orange;F4O
+Feu2Rouge;F2R
+Feu2Rouge;F4R
+
+Couleurs;Rouge;Vert;Bleu # Table des couleurs
+Noir;0;0;0
+Vert;0;255;0
+Orange;255;128;0
+Rouge;255;0;0
+
+Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi # Table des flashs
+
+Cycles;Piece/groupe;Couleur;Attente mini;Attente maxi # Table des cycles
+Croisement;Feu2Rouge;Rouge # Allume le feu 2, en rouge, à 100% sans attente après l'allumage
+Croisement;Feu1Vert;Vert;5000 # Allume le feu 1 en vert et attend 5 secondes
+Croisement;Feu1Vert; # Éteint le feu 1 vert, sans attente après l'extinction
+Croisement;Feu1Orange;Orange;1000 # Allume le feu 1 en orange et attend une seconde
+Croisement;Feu1Orange # Éteint le feu 1 orange, sans attente après l'extinction
+Croisement;Feu1Rouge;Rouge;2000 # Allume le feu 1 en rouge et attend 2 secondes
+Croisement;Feu2Rouge; # Éteint le feu 2 rouge, sans attente après l'extinction
+Croisement;Feu2Vert;Vert;5000 # Allume le feu 2 en vert et attend 5 secondes
+Croisement;Feu2Vert # Éteint le feu 2 vert, sans attente après l'extinction
+Croisement;Feu2Orange;Orange;1000 # Allume le feu 2 en orange et attend une seconde
+Croisement;Feu2Orange # Éteint le feu 2 orange, sans attente après l'extinction
+Croisement;Feu2Rouge;Rouge;2000 # Allume le feu 2 en rouge et attend 2 secondes
+Croisement;Feu1Rouge # Éteint le feu 1 rouge, sans attente après l'extinction
+
+Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
+00:00;Croisement;1
+
+```
 
 ### Les flashs et clignotants
 
@@ -770,26 +889,26 @@ Ils permettent de faire flasher de façon régulière ou non, les LED d'une piè
 
 Noter qu'après le flash, la couleur des LED avant le flash est réutilisée.
 
-On indique le nom du flash, les durées minimales (en millisecondes) d'allumage, d'extinction et de pause entre les séries, ainsi que le nombre de répétition de la séquence d'allumage/extinction. Il est également possible de définir des valeurs variables aléatoires en précisant des valeurs maximales en plus des valeurs minimales.
+On indique le nom du flash, le nom de la pièce ou du groupe, les durées minimales (en millisecondes) d'allumage, d'extinction et de pause entre les séries, ainsi que le nombre de répétition de la séquence d'allumage/extinction. Il est également possible de définir des valeurs variables aléatoires en précisant des valeurs maximales en plus des valeurs minimales.
 
 Par exemple, une durée d'allumage minimale de 10 et maximale de 100 produira une valeur aléatoire entre 10 et 100 (inclus) à chaque activation.
 
 Pour faire un flash bref toutes les secondes, utiliser :
 ```
-Flashs;Piece;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi
+Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi
 Flash 1;P1;Blanc;1;0;0;0;1;0;1000;0
 
 ```
 
 Pour 3 flashs rapides suivis d'une attente d'une seconde :
 ```
-Flashs;Piece;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi
+Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi
 Flash 2;P1;Blanc;1;0;1;0;3;0;1000;0
 
 ```
 Une simulation de flash de soudure à l'arc pourrait s'écrire :
 ```
-Flashs;Piece;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi
+Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi
 Soudure;P1;Blanc;10;30;5;20;5;30;20;5000
 
 ```
@@ -807,20 +926,20 @@ Pour les cycles et les flashs, on spécifie l'heure de simulation, le nom du cyc
 
 Par exemple :
 ```
-Date;Piece;Couleur;Luminosite
-06:00;Flash 1 #Désactive le flash 1 à 6h (il est activé à 20h)
-09:30;Soudure;1 #Active le flash "Soudure" à 9h30
-10:00;Soudure #Désactive le flash "Soudure" à 10h
-11:00;Soudure;1 #Active le flash "Soudure" à 11:00
-12:00;Soudure #Désactive le flash "Soudure" à midi
-18:30;P1;Blanc #Allume la pièce 1 en blanc à 18h30
-18:45;P2;Blanc;80 #Allume la pièce 2 en blanc à 80% de luminosité à 18h45
-19:00;P3;Jaune #Allume la pièce 3 à 19:00
-20:00;P2;Blanc #Allume la pièce 2 en blanc à 100% de luminosité à 20:00
-20:00;Flash 1;1 #Active le flash 1 à 20h
-22:30;P3 #Éteint la pièce 3 à 22h30
-23:00;P1 #Éteint la pièce 1 à 23h
-23:00;P2 #Éteint la pièce 2 à 23h
+Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite
+06:00;Flash 1 # Désactive le flash 1 à 6h (il est activé à 20h)
+09:30;Soudure;1 # Active le flash "Soudure" à 9h30
+10:00;Soudure # Désactive le flash "Soudure" à 10h
+11:00;Soudure;1 # Active le flash "Soudure" à 11:00
+12:00;Soudure # Désactive le flash "Soudure" à midi
+18:30;P1;Blanc # Allume la pièce 1 en blanc à 18h30
+18:45;P2;Blanc;80 # Allume la pièce 2 en blanc à 80% de luminosité à 18h45
+19:00;P3;Jaune # Allume la pièce 3 à 19:00
+20:00;P2;Blanc # Allume la pièce 2 en blanc à 100% de luminosité à 20:00
+20:00;Flash 1;1 # Active le flash 1 à 20h
+22:30;P3 # Éteint la pièce 3 à 22h30
+23:00;P1 # Éteint la pièce 1 à 23h
+23:00;P2 # Éteint la pièce 2 à 23h
 
 ```
 ## Le serveur Web embarqué
