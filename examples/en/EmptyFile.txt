@@ -1,0 +1,12 @@
+Rooms;First LED;LED count;Luminosity # Rooms table starts here
+
+Groups;Room # Groups table starts here
+
+Colors;Red;Green;Blue # Colors table start here
+Black;0;0;0           # First color is used to turn LED off
+
+Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause # Flashes table starts here
+
+Cycles;Room/group;Color;MinWaitTime;MaxWaitTime # Cycles tables starts here
+
+Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here

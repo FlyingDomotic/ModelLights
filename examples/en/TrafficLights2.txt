@@ -1,0 +1,53 @@
+Rooms;First LED;LED count;Luminosity # Rooms table starts here
+L1G;1;1;100
+L1O;2;1;100
+L1R;3;1;100
+L2G;4;1;100
+L2O;5;1;100
+L2R;6;1;100
+L3G;7;1;100
+L3O;8;1;100
+L3R;9;1;100
+L4G;10;1;100
+L4O;11;1;100
+L4R;12;1;100
+
+Groups;Room # Groups table starts here
+Light1Green;L1G
+Light1Green;L3G
+Light1Orange;L1O
+Light1Orange;L3O
+Light1Red;3;1;L1R
+Light1Red;3;1;L3R
+Light2Green;L2G
+Light2Green;L4G
+Light2Orange;L2O
+Light2Orange;L4O
+Light2Red;L2R
+Light2Red;L4R
+
+Colors;Red;Green;Blue # Colors table start here
+Black;0;0;0
+Green;0;255;0
+Orange;255;128;0
+Red;255;0;0
+
+Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;MaxPause # Flashes table starts here
+
+Cycles;Room/group;Color;MinWaitTime;MaxWaitTime # Cycles tables starts here
+TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
+TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
+TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
+TrafficLight;Light1Orange;Orange;1000 # Turn light 1 orange on and wait for one second
+TrafficLight;Light1Orange # Turn light 1 orange off, without waiting
+TrafficLight;Light1Red;Red;2000 # Turn light 1 Red on and wait for 2 seconds
+TrafficLight;Light2Red; # Turn light 2 Red off, without waiting
+TrafficLight;Light2Green;Green;5000 # Turn light 2 Green on and wait for 5 seconds
+TrafficLight;Light2Green # Turn light 2 Green off, without waiting
+TrafficLight;Light2Orange;Orange;1000 # Turn light 2 orange on and wait for one second
+TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
+TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
+TrafficLight;Light1Red # Turn light 1 Red off, without waiting
+
+Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
+00:00;TrafficLight;1

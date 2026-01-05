@@ -1,0 +1,35 @@
+Pieces;Premiere lampe;Nombre de lampes;Luminosite # Table des pieces
+Feu1Vert;1;1;100
+Feu1Orange;2;1;100
+Feu1Rouge;3;1;100
+Feu2Vert;4;1;100
+Feu2Orange;5;1;100
+Feu2Rouge;6;1;100
+
+Groupes;Piece # Table des groupes
+
+Couleurs;Rouge;Vert;Bleu # Table des couleurs
+Noir;0;0;0
+Vert;0;255;0
+Orange;255;128;0
+Rouge;255;0;0
+
+Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi # Table des flashs
+
+Cycles;Piece/groupe;Couleur;Attente mini;Attente maxi # Table des cycles
+Croisement;Feu2Rouge;Rouge #Allume le feu 2, en rouge, à 100% sans attente après l'allumage
+Croisement;Feu1Vert;Vert;5000 #Allume le feu 1 en vert et attend 5 secondes
+Croisement;Feu1Vert; #Éteint le feu 1 vert, sans attente après l'extinction
+Croisement;Feu1Orange;Orange;1000 #Allume le feu 1 en orange et attend une seconde
+Croisement;Feu1Orange #Éteint le feu 1 orange, sans attente après l'extinction
+Croisement;Feu1Rouge;Rouge;2000 #Allume le feu 1 en rouge et attend 2 secondes
+Croisement;Feu2Rouge; #Éteint le feu 2 rouge, sans attente après l'extinction
+Croisement;Feu2Vert;Vert;5000 #Allume le feu 2 en vert et attend 5 secondes
+Croisement;Feu2Vert #Éteint le feu 2 vert, sans attente après l'extinction
+Croisement;Feu2Orange;Orange;1000 #Allume le feu 2 en orange et attend une seconde
+Croisement;Feu2Orange #Éteint le feu 2 orange, sans attente après l'extinction
+Croisement;Feu2Rouge;Rouge;2000 #Allume le feu 2 en rouge et attend 2 secondes
+Croisement;Feu1Rouge #Éteint le feu 1 rouge, sans attente après l'extinction
+
+Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
+00:00;Croisement;1

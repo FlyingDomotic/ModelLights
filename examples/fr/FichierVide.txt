@@ -1,0 +1,12 @@
+Pieces;Premiere lampe;Nombre de lampes;Luminosite # Table des pieces
+
+Groupes;Piece # Table des groupes
+
+Couleurs;Rouge;Vert;Bleu # Table des couleurs
+Noir;0;0;0               # La premiere couleur est utilisee pour eteindre les LEDS
+
+Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pause mini;Pause maxi # Table des flashs
+
+Cycles;Piece/groupe;Couleur;Attente mini;Attente maxi # Table des cycles
+
+Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
