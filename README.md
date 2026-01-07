@@ -88,7 +88,7 @@ Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;
 
 Cycles;Room/group;Color;MinWaitTime;MaxWaitTime # Cycles tables starts here
 
-Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
+Time;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
 
 ```
 FYI, only first zone of each header is tested (and should be identical to this example). It's possible to modify all other header fields to match your requirements.
@@ -177,7 +177,7 @@ if `MaxWaitTime` is defined, wait time will be a random time between `MinWaitTim
 
 Don't forget ti activate `TrafficLight` cycle in agenda (as described later, using:
 ```
-Date;Room/group/cycle/flash;Color/active;Luminosity
+Time;Room/group/cycle/flash;Color/active;Luminosity
 00:00;TrafficLight;1 #Activate "TrafficLight" cycle at midnight.
 
 ```
@@ -216,7 +216,7 @@ TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
 TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
 TrafficLight;Light1Red # Turn light 1 Red off, without waiting
 
-Date;Room/group/cycle/flash;Color/active;Luminosity
+Time;Room/group/cycle/flash;Color/active;Luminosity
 00:00;TrafficLight;1
 
 ```
@@ -276,7 +276,7 @@ TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
 TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
 TrafficLight;Light1Red # Turn light 1 Red off, without waiting
 
-Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
+Time;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
 00:00;TrafficLight;1
 
 ```
@@ -324,7 +324,7 @@ For cycles and flashes, you have to give simulation time, cycle or flash name, a
 
 For example:
 ```
-Date;Room/group/cycle/flash;Color/active;Luminosity
+Time;Room/group/cycle/flash;Color/active;Luminosity
 06:00;Flash 1 # Deactivate flash 1 at 6AM (it's activated at 8PM)
 09:30;Arc Welding;1 # Activate "Arc Welding" flash at 9:30AM
 10:00;Arc Welding # Deactivate "Arc Welding" flash at 10AM
@@ -698,7 +698,7 @@ Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pa
 
 Cycles;Piece/groupe;Couleur;Attente mini;Attente maxi # Table des cycles
 
-Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
+Heure;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
 
 ```
 Pour information, seule la première zone de chaque entête est testé (et doit être identique a celles de cet exemple). Il est possible de modifier les autres zones  d'entête pour les faire correspondre à ses besoins.
@@ -787,7 +787,7 @@ Si "Attente max" est définie, le temps d'attente utilisé sera une valeur aléa
 
 Ne pas oublier d'activer le cycle "Croisement" dans l'agenda (décrit plus loin), par un :
 ```
-Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite
+Heure;Piece/groupe/cycle/flash;Couleur/actif;Luminosite
 00:00;Croisement;1 #Active le cycle "Croisement" à 0h00
 
 ```
@@ -822,7 +822,7 @@ Croisement;Feu2Orange # Éteint le feu 2 orange, sans attente après l'extinctio
 Croisement;Feu2Rouge;Rouge;2000 # Allume le feu 2 en rouge et attend 2 secondes
 Croisement;Feu1Rouge # Éteint le feu 1 rouge, sans attente après l'extinction
 
-Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Entete de l'agenda
+Heure;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Entete de l'agenda
 00:00;Croisement;1 #Active le cycle "Croisement" à 0h00
 
 ```
@@ -881,7 +881,7 @@ Croisement;Feu2Orange # Éteint le feu 2 orange, sans attente après l'extinctio
 Croisement;Feu2Rouge;Rouge;2000 # Allume le feu 2 en rouge et attend 2 secondes
 Croisement;Feu1Rouge # Éteint le feu 1 rouge, sans attente après l'extinction
 
-Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
+Heure;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
 00:00;Croisement;1
 
 ```
@@ -929,7 +929,7 @@ Pour les cycles et les flashs, on spécifie l'heure de simulation, le nom du cyc
 
 Par exemple :
 ```
-Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite
+Heure;Piece/groupe/cycle/flash;Couleur/actif;Luminosite
 06:00;Flash 1 # Désactive le flash 1 à 6h (il est activé à 20h)
 09:30;Soudure;1 # Active le flash "Soudure" à 9h30
 10:00;Soudure # Désactive le flash "Soudure" à 10h

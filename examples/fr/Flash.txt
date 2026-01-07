@@ -18,7 +18,7 @@ Flash 1;F1;Blanc;1;0;0;0;1;0;1000;0
 Flash 2;G1;Rouge;1;0;1;0;3;0;1000;0
 Soudure;F3;Blanc;10;30;5;20;5;30;20;5000
 
-Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
+Heure;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
 00:00;Flash 1
 00:00;Flash 2
 00:00;Soudure;

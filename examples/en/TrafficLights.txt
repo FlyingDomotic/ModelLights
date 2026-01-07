@@ -31,5 +31,5 @@ TrafficLight;Light2Orange # Turn light 2 orange off, without waiting
 TrafficLight;Light2Red;Red;2000 # Turn light 2 Red on and wait for 2 seconds
 TrafficLight;Light1Red # Turn light 1 Red off, without waiting
 
-Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
+Time;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
 00:00;TrafficLight;1

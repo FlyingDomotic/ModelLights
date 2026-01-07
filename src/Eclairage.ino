@@ -1,4 +1,4 @@
-#define VERSION "26.1.7-1"
+#define VERSION "26.1.7-2"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -1110,14 +1110,14 @@ void handleUpload(AsyncWebServerRequest *request, String fileName, size_t index,
         // close the file handle as the upload is now done
         request->_tempFile.close();
         Serial.printf("End of upload %d %s\n", lastUploadStatus, fileName.c_str());
-            request->send(200, "Upload ok");
-            // Delete existing file
-            if (LittleFS.exists(fileName)) {
-                LittleFS.remove(fileName);
-            }
-            // Rename file
-            LittleFS.rename("/tmpfile.tmp", fileName);
-            lastUploadedFile = fileName;
+        request->send(200, "Upload ok");
+        // Delete existing file
+        if (LittleFS.exists(fileName)) {
+            LittleFS.remove(fileName);
+        }
+        // Rename file
+        LittleFS.rename("/tmpfile.tmp", fileName);
+        lastUploadedFile = fileName;
     }
 }
 
@@ -1884,7 +1884,7 @@ void sendWebServerUpdate(void) {
     data["wifiState"] = wifiState.c_str();
     char buffer2[20];
     if (simulationActive) {
-    formatTime(simulationTime, buffer2, sizeof(buffer2));           // Format time
+        formatTime(simulationTime, buffer2, sizeof(buffer2));       // Format time
     } else {
         #ifdef VERSION_FRANCAISE
             formatTime(simulationTime, buffer2, sizeof(buffer2), "Arrêté à ");
@@ -1966,7 +1966,7 @@ void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t 
                 uint8_t g = percent(colorData.g, intensity);
                 uint8_t b = percent(colorData.b, intensity);
                 if (legend != nullptr) {
-    #ifdef VERSION_FRANCAISE
+                    #ifdef VERSION_FRANCAISE
                         trace_debug_P("LED %d à %d mises à (%d, %d, %d) %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                             colorData.r, colorData.g, colorData.b,
@@ -2003,12 +2003,12 @@ void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t 
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                     colorData.r, colorData.g, colorData.b,
                     legend);
-    #else
+            #else
                 trace_debug_P("LED %d to %d set to (%d, %d, %d) %s",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                     colorData.r, colorData.g, colorData.b,
                     legend);
-    #endif
+            #endif
         }
         for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
             if (isFlash) {
@@ -2297,15 +2297,15 @@ void activateFlash (const uint8_t flash) {
         }
         char legend[50] = {0};
         if (traceVerbose) {
-        #ifdef TRACE_FLASH
-            #ifdef VERSION_FRANCAISE
+            #ifdef TRACE_FLASH
+                #ifdef VERSION_FRANCAISE
                     snprintf_P(legend, sizeof(legend), "(F%dP%d)",
                         flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
-            #else
+                #else
                     snprintf_P(legend, sizeof(legend), "(F%dR%d)",
                         flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
+                #endif
             #endif
-        #endif
         }
         setRoomOrGroup(flashData.roomOrGroup, flashData.color,
             traceVerbose? legend : nullptr,
@@ -2453,13 +2453,13 @@ void setGroupAgenda(const uint16_t agendaPtr) {
     agendaTable_s agendaData = agendaTable[agendaIndex];            // Get agenda data
 
     char legend[50];
-            #ifdef VERSION_FRANCAISE
+    #ifdef VERSION_FRANCAISE
         snprintf_P(legend, sizeof(legend), "(A%dG%dC%d)",
             agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
-            #else
+    #else
         snprintf_P(legend, sizeof(legend), "(A%G%dC%d)",
             agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
-            #endif
+    #endif
     setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend,agendaData.intensity);
 }
 
@@ -2867,7 +2867,7 @@ int readAllHeaders(READ_FILE_PARAMETERS) {
                 return signalError(103, 0, cycleName);
             }
             fileFormat = cycleFileFormat;
-        } else if (startWith(fileLineData, "Date;")) {
+        } else if (startWith(fileLineData, "Time;") || startWith(fileLineData, "Heure;")) {
             if (agendaCount) {
                 return signalError(103, 0, agendaName);
             }
@@ -3014,7 +3014,7 @@ int readAllTables(READ_FILE_PARAMETERS) {
                         }
                         if (i < groupCount) {
                             sequenceTable[index].roomOrGroup = setGroup(i);
-                    } else {
+                        } else {
                             return signalError(111, 0, field);
                         }
                     }
@@ -3340,53 +3340,53 @@ int loadAgendaDetails(void) {
     if (errorCode) return errorCode;
 
     if (traceTable) {
-    trace_debug_P("Row 1st Cnt Int (%s)", roomName);
+        trace_debug_P("Row 1st Cnt Int (%s)", roomName);
         for (int i = 0; i < roomCount; i++) {
             trace_debug_P("%3d %3d %3d %3d", i,
                 roomTable[i].firstLed, roomTable[i].ledCount,roomTable[i].intensity);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-    trace_debug_P("Row     Name Rom (%s)", groupName);
+        trace_debug_P("Row     Name Rom (%s)", groupName);
         for (int i = 0; i < groupCount; i++) {
             trace_debug_P("%3d %8x %3d", i,
                 groupTable[i].crc, groupTable[i].room);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-    trace_debug_P("Row   R   G   B (%s)", colorName);
+        trace_debug_P("Row   R   G   B (%s)", colorName);
         for (int i = 0; i < colorCount; i++) {
             trace_debug_P("%3d %3d %3d %3d", i,
                 colorTable[i].r, colorTable[i].g, colorTable[i].b);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-    trace_debug_P("Row Idex Flg OnMin OnMax OfMin OfMax RpMin RpMax PsMin PsMax (%s)", flashName);
+        trace_debug_P("Row Idex Flg OnMin OnMax OfMin OfMax RpMin RpMax PsMin PsMax (%s)", flashName);
         for (int i = 0; i < flashCount; i++) {
-        trace_debug_P("%3d %4d %3d %5d %5d %5d %5d %5d %5d %5d %5d", i,
-            flashTable[i].roomOrGroup, flashTable[i].color,
+            trace_debug_P("%3d %4d %3d %5d %5d %5d %5d %5d %5d %5d %5d", i,
+                flashTable[i].roomOrGroup, flashTable[i].color,
                 flashTable[i].onMin, flashTable[i].onMax,
                 flashTable[i].offMin, flashTable[i].offMax,
                 flashTable[i].repeatMin, flashTable[i].repeatMax,
                 flashTable[i].pauseMin, flashTable[i].pauseMax);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-    trace_debug_P("Row Run Act Cnt  Wait (%s)", cycleName);
+        trace_debug_P("Row Run Act Cnt  Wait (%s)", cycleName);
         for (int i = 0; i < cycleCount; i++) {
             trace_debug_P("%3d %3d %3d %3d %5d", i,
                 cycleTable[i].isActive, cycleTable[i].activeSequence,
                 cycleTable[i].sequenceCount, cycleTable[i].waitTime);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-    trace_debug_P("Row Cyc Seq Idex Clr  Wait MaxWt (Sequence)", NULL);
+        trace_debug_P("Row Cyc Seq Idex Clr  Wait MaxWt (Sequence)", NULL);
         for (int i = 0; i < sequenceCount; i++) {
-        trace_debug_P("%3d %3d %3d %4d %3d %5d %5d", i,
+            trace_debug_P("%3d %3d %3d %4d %3d %5d %5d", i,
                 sequenceTable[i].cycle, sequenceTable[i].sequence,
-            sequenceTable[i].roomOrGroup, sequenceTable[i].color,
+                sequenceTable[i].roomOrGroup, sequenceTable[i].color,
                 sequenceTable[i].waitTime, sequenceTable[i].maxWaitTime);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-    trace_debug_P("Row Flg Time Ind Oth Int (%s)", agendaName);
+        trace_debug_P("Row Flg Time Ind Oth Int (%s)", agendaName);
         for (int i = 0; i < agendaCount; i++) {
             trace_debug_P("%3d %3d %4d %3d %3d %3d", i,
-            agendaTable[i].tableType, agendaTable[i].time,
+                agendaTable[i].tableType, agendaTable[i].time,
                 agendaTable[i].tableIndex, agendaTable[i].otherData,
                 agendaTable[i].intensity);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty

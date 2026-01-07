@@ -11,7 +11,7 @@ Flash 1;P1;White;1;0;0;0;1;0;1000;0
 Flash 2;P1;Red;1;0;1;0;3;0;1000;0
 Arc Welding;P1;White;10;30;5;20;5;30;20;5000
 
-Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
+Time;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
 00:00;Arc Welding;
 00:00;Flash 1;1
 00:05;Flash 1

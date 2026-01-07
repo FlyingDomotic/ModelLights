@@ -9,4 +9,4 @@ Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;
 
 Cycles;Room/group;Color;MinWaitTime;MaxWaitTime # Cycles tables starts here
 
-Date;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here
+Time;Room/group/cycle/flash;Color/active;Luminosity # Agenda table starts here

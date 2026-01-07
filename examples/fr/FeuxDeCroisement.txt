@@ -31,5 +31,5 @@ Croisement;Feu2Orange #Éteint le feu 2 orange, sans attente après l'extinction
 Croisement;Feu2Rouge;Rouge;2000 #Allume le feu 2 en rouge et attend 2 secondes
 Croisement;Feu1Rouge #Éteint le feu 1 rouge, sans attente après l'extinction
 
-Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
+Heure;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
 00:00;Croisement;1

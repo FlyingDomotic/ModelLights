@@ -9,4 +9,4 @@ Flashs;Piece/groupe;Couleur;On mini;On maxi;Off mini;Off maxi;Nb mini;Nb maxi;Pa
 
 Cycles;Piece/groupe;Couleur;Attente mini;Attente maxi # Table des cycles
 
-Date;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
+Heure;Piece/groupe/cycle/flash;Couleur/actif;Luminosite # Agenda
