@@ -1,4 +1,4 @@
-#define VERSION "26.1.6-1"
+#define VERSION "26.1.4-4"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -155,7 +155,6 @@ bool traceDebug = true;                                             // Trace deb
 bool traceVerbose = false;                                          // Trace (super) verbose?
 bool traceJava = false;                                             // Trace Java code?
 bool traceSyslog = false;                                           // Send traces to syslog?
-bool traceTable = false;                                            // Trace tables after loading?
 bool enableImmediateSend = false;                                   // Send immediate flag
 bool enableClear = false;                                           // Clear LED before sending
 bool enableFlash = false;                                           // Use flash settings when testing colors
@@ -802,7 +801,6 @@ void dumpSettings(void) {
     trace_info_P("traceVerbose = %s", traceVerbose? "true" : "false");
     trace_info_P("traceJava = %s", traceJava? "true" : "false");
     trace_info_P("traceSyslog = %s", traceSyslog? "true" : "false");
-    trace_info_P("traceTable = %s", traceTable? "true" : "false");
     trace_info_P("serverLanguage = %s", serverLanguage.c_str());
     trace_info_P("syslogServer = %s", syslogServer.c_str());
     trace_info_P("syslogPort = %d", syslogPort);
@@ -858,7 +856,6 @@ bool readSettings(void) {
     traceVerbose = settings["traceVerbose"].as<bool>();
     traceJava = settings["traceJava"].as<bool>();
     traceSyslog = settings["traceSyslog"].as<bool>();
-    traceTable = settings["traceTable"].as<bool>();
     ssid = settings["ssid"].as<String>();
     pwd = settings["pwd"].as<String>();
     accessPointPwd = settings["accessPointPwd"].as<String>();
@@ -914,7 +911,6 @@ void writeSettings(void) {
     settings["traceVerbose"] = traceVerbose;
     settings["traceJava"] = traceJava;
     settings["traceSyslog"] = traceSyslog;
-    settings["traceTable"] = traceTable;
     settings["serverLanguage"] = serverLanguage.c_str();
     settings["ledCount"] = ledCount;
     settings["ledPin"] = ledPin;
@@ -1076,12 +1072,12 @@ void startUpload(AsyncWebServerRequest *request) {
             // Do we have a .txt file?
             if (fileName.endsWith(".txt")) {
                 lastUploadStatus = 200;
-                request->send(lastUploadStatus, "Starting upload");
+                request->send(200, "Starting upload");
                 return;
             }
             // File name is not supported
             lastUploadStatus = 412;
-            request->send(lastUploadStatus, "Unsupported file name");
+            request->send(412, "Unsupported file name");
             #ifdef VERSION_FRANCAISE
                 trace_error_P("Nom de fichier %s illégal", fileParameter->value().c_str());
             #else
@@ -1092,7 +1088,7 @@ void startUpload(AsyncWebServerRequest *request) {
     }
     // File parameter not found in POST request
     lastUploadStatus = 400;
-    request->send(lastUploadStatus, "No file parameter");
+    request->send(400, "No file parameter");
 }
 
 // Called when a /upload data
@@ -1109,7 +1105,7 @@ void handleUpload(AsyncWebServerRequest *request, String fileName, size_t index,
     if (final) {
         // close the file handle as the upload is now done
         request->_tempFile.close();
-        Serial.printf("End of upload %d %s\n", lastUploadStatus, fileName.c_str());
+        if (lastUploadStatus == 200) {
             request->send(200, "Upload ok");
             // Delete existing file
             if (LittleFS.exists(fileName)) {
@@ -1118,6 +1114,7 @@ void handleUpload(AsyncWebServerRequest *request, String fileName, size_t index,
             // Rename file
             LittleFS.rename("/tmpfile.tmp", fileName);
             lastUploadedFile = fileName;
+        } else {
             request->send(lastUploadStatus, "Upload error");
         }
     }
@@ -1194,8 +1191,6 @@ void setChangedReceived(AsyncWebServerRequest *request) {
                 traceJava = (fieldValue == "true");
             } else if (fieldName == "traceSyslog") {
                 traceSyslog = (fieldValue == "true");
-            } else if (fieldName == "traceTable") {
-                traceTable = (fieldValue == "true");
             } else if (fieldName == "ssid") {
                 ssid = fieldValue;
                 restartToApply();
@@ -1859,10 +1854,6 @@ bool isDebugCommand(const String givenCommand) {
         traceSyslog = true;
     } else if (command == "disable syslog") {
         traceSyslog = false;
-    } else if (command == "enable table") {
-        traceTable = true;
-    } else if (command == "disable table") {
-        traceTable = false;
     } else {
         return false;
     }
@@ -2398,6 +2389,7 @@ void startLight(void) {
         clearAllLights();
         // Play one time all events
         while (agendaIndex < agendaCount) {
+            trace_debug_P("Index %d, flag %d", agendaIndex, agendaTable[agendaIndex].tableType); ////
             if (agendaTable[agendaIndex].tableType == typeRoom) {
                 setLedAgenda(agendaIndex);
             } else if (agendaTable[agendaIndex].tableType == typeGroup) {
@@ -2412,6 +2404,7 @@ void startLight(void) {
         agendaIndex = 0;
         // Position index to start time
         while (agendaIndex < agendaCount && agendaTable[agendaIndex].time < simulationStart) {
+            //trace_debug_P("Index %d, flag %d, time %d, start %d", agendaIndex, agendaTable[agendaIndex].tableType, agendaTable[agendaIndex].time < simulationStart); ////
             if (agendaTable[agendaIndex].tableType == typeRoom) {
                 setLedAgenda(agendaIndex);
             } else if (agendaTable[agendaIndex].tableType == typeGroup) {
@@ -2589,133 +2582,124 @@ int signalError(const int errorCode, const int integerValue,  const char* string
     switch (errorCode) {
         case 100:
             #ifdef VERSION_FRANCAISE
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Ne peut ouvrir %s ***", stringValue);
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Ne peut ouvrir %s", stringValue);
             #else
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Can't open file %s ***", stringValue);
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Can't open file %s", stringValue);
             #endif
             break;
         case 101:
             #ifdef VERSION_FRANCAISE
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Entête >%s< incorrecte dans %s ***",
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Entête >%s< incorrecte dans %s",
                     stringValue, configurationName);
             #else
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Bad file header >%s< in %s ***",
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Bad file header >%s< in %s",
                     stringValue, configurationName);
             #endif
             break;
         case 102:
             #ifdef VERSION_FRANCAISE
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Partie %s manquante ***", stringValue);
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Fichier %s manquant", stringValue);
             #else
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Part missing for %s ***", stringValue);
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "File missing for %s", stringValue);
             #endif
             break;
         case 103:
             #ifdef VERSION_FRANCAISE
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Entête >%s< déjà définie dans %s, avant la ligne %d ***",
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Entête >%s< déjà définie dans %s, avant la ligne %d",
                     stringValue, configurationName, fileLineNumber);
             #else
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** >%s< header already defined in %s, before line %d ***",
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), ">%s< header already defined in %s, before line %d",
                     stringValue, configurationName, fileLineNumber);
             #endif
             break;
         case 104:
             #ifdef VERSION_FRANCAISE
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Nombre de zones (%d) incorrect ligne %d de %s ***",
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Nombre de zones (%d) incorrect ligne %d de %s",
                     integerValue, fileLineNumber, configurationName);
             #else
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "*** Bad field count (%d) line %d of %s ***",
+                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage), "Bad field count (%d) line %d of %s",
                     integerValue, fileLineNumber, configurationName);
             #endif
             break;
         case 105:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Valeur >%s< incorrecte, zone %d, ligne %d de %s ***",
+                    "Valeur >%s< incorrecte, zone %d, ligne %d de %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Illegal number >%s< field %d line %d of %s ***",
+                    "Illegal number >%s< field %d line %d of %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
             #endif
             break;
         case 106:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Valeur >%s< hors limite, zone %d, ligne %d de %s ***",
+                    "Valeur >%s< hors limite, zone %d, ligne %d de %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Out of range >%s< field %d line %d of %s ***",
+                    "Out of range >%s< field %d line %d of %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
             #endif
             break;
         case 107:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Pièce >%s< inconnue, ligne %d de %s ***", stringValue, fileLineNumber, configurationName);
+                    "Pièce >%s< inconnue, ligne %d de %s", stringValue, fileLineNumber, configurationName);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Room >%s< not found line %d of %s ***", stringValue, fileLineNumber, configurationName);
+                    "Room >%s< not found line %d of %s", stringValue, fileLineNumber, configurationName);
             #endif
             break;
         case 108:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Couleur >%s< inconnue, ligne %d de %s ***", stringValue, fileLineNumber, configurationName);
+                    "Couleur >%s< inconnue, ligne %d de %s", stringValue, fileLineNumber, configurationName);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Color >%s< not found line %d of %s ***", stringValue, fileLineNumber, configurationName);
+                    "Color >%s< not found line %d of %s", stringValue, fileLineNumber, configurationName);
             #endif
             break;
         case 109:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Heure >%s< incorrecte, zone %d, ligne %d de %s ***",
+                    "Heure >%s< incorrecte, zone %d, ligne %d de %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Illegal time >%s<, field %d line %d of %s ***",
+                    "Illegal time >%s<, field %d line %d of %s",
                     stringValue, integerValue, fileLineNumber, configurationName);
             #endif
             break;
         case 110:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** LED de fin %d incorrecte, ligne %d de %s ***",
+                    "LED de fin %d incorrecte, ligne %d de %s",
                     integerValue, fileLineNumber, configurationName);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "** Incorrect ending LED %d, line %d of %s ***",
+                    "Incorrect ending LED %d, line %d of %s",
                     integerValue, fileLineNumber, configurationName);
             #endif
             break;
         case 111:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Pièce ou groupe >%s< inconnu, ligne %d de %s ***", stringValue, fileLineNumber, configurationName);
+                    "Pièce ou groupe >%s< inconnue, ligne %d de %s", stringValue, fileLineNumber, configurationName);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Room or group >%s< not found line %d of %s ***", stringValue, fileLineNumber, configurationName);
-            #endif
-            break;
-        case 112:
-            #ifdef VERSION_FRANCAISE
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Pièce, groupe, cycle ou flash >%s< inconnu, ligne %d de %s ***", stringValue, fileLineNumber, configurationName);
-            #else
-                snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Room, group, cycle or flash >%s< not found line %d of %s ***", stringValue, fileLineNumber, configurationName);
+                    "Room or group >%s< not found line %d of %s", stringValue, fileLineNumber, configurationName);
             #endif
             break;
         default:
             #ifdef VERSION_FRANCAISE
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Erreur %d inconnue, fichier %s, ligne %d, entier %d, chaîne >%s< ***",
+                    "Erreur %d inconnue, fichier %s, ligne %d, entier %d, chaîne >%s<",
                     errorCode, configurationName, fileLineNumber, integerValue, stringValue);
             #else
                 snprintf_P(lastErrorMessage, sizeof(lastErrorMessage),
-                    "*** Unkown error %d, file %s, line %d, integer %d, string >%s< ***",
+                    "Unkown error %d, file %s, line %d, integer %d, string >%s<",
                     errorCode, configurationName, fileLineNumber, integerValue, stringValue);
             #endif
     }
@@ -3333,7 +3317,6 @@ int loadAgendaDetails(void) {
     errorCode = readFile(fileToStart.c_str(), &readAllTables);      // Load all tables
     if (errorCode) return errorCode;
 
-    if (traceTable) {
     trace_debug_P("Row 1st Cnt Int (%s)", roomName);
         for (int i = 0; i < roomCount; i++) {
             trace_debug_P("%3d %3d %3d %3d", i,
@@ -3385,7 +3368,6 @@ int loadAgendaDetails(void) {
                 agendaTable[i].intensity);
             waitForEventsEmpty();                                   // Wait for 100 ms or event queue empty
         }
-    }
     return 0;
 }
 

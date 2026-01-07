@@ -61,7 +61,6 @@
 			<label data-i18n-key="traceDebug">Display debug messages</label>&nbsp;<input type="checkbox" id="traceDebug" onchange="changed(this);"/><br>
 			<label data-i18n-key="traceVerbose">Display verbose messages</label>&nbsp;<input type="checkbox" id="traceVerbose" onchange="changed(this);"/><br>
 			<label data-i18n-key="traceJava">Display Java traces</label>&nbsp;<input type="checkbox" id="traceJava" onchange="changed(this);"/><br>
-			<label data-i18n-key="traceTable">Display tables after loading</label>&nbsp;<input type="checkbox" id="traceTable" onchange="changed(this);"/><br>
 			<label data-i18n-key="traceSyslog">Send trace to syslog</label>&nbsp;<input type="checkbox" id="traceSyslog" onchange="changed(this);"/><br>
 			<hr />
             <input type="button" class="blueBtn" style="width:175px" data-i18n-key="restart" id="restart" value="restart" onclick="changed(this);"/>

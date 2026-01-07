@@ -15,7 +15,6 @@
     "traceDebug": "Affichage des messages de déverminage",
     "traceVerbose": "Affichage des messages verbeux",
     "traceJava": "Affichage des traces de Java",
-    "traceTable": "Affichage des tables au chargement",
     "traceSyslog": "Envoi des traces à Syslog",
     "syslogServer": "Serveur syslog :",
     "syslogPort": "Port syslog :",

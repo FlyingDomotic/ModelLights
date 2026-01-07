@@ -93,6 +93,8 @@
                     <form id="upload" action="/upload" method="POST" enctype="multipart/form-data">
                         <div>
                             <input type="file" id="fileSelect" accept=".txt">
+                            &nbsp;&nbsp;&nbsp;&nbsp;
+                            <input type="button" hidden="true" id="send" data-i18n-key="send">
                         </div>
                     </form>
                     <div id="fileDrag" data-i18n-key="dropAgendaHere">

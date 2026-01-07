@@ -158,7 +158,7 @@ For example, to define a traffic lights with 2 directions (Light1 for a directio
 Cycles;Room/group;Color;MinWaitTime;MaxWaitTime
 TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
 TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
-TrafficLight;Light1Green; # Turn light 1 Green off, without waiting
+TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
 TrafficLight;Light1Orange;Orange;1000 # Turn light 1 orange on and wait for one second
 TrafficLight;Light1Orange # Turn light 1 orange off, without waiting
 TrafficLight;Light1Red;Red;2000 # Turn light 1 Red on and wait for 2 seconds
@@ -204,7 +204,7 @@ Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;
 Cycles;Room/group;Color;MinWaitTime;MaxWaitTime
 TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
 TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
-TrafficLight;Light1Green; # Turn light 1 Green off, without waiting
+TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
 TrafficLight;Light1Orange;Orange;1000 # Turn light 1 orange on and wait for one second
 TrafficLight;Light1Orange # Turn light 1 orange off, without waiting
 TrafficLight;Light1Red;Red;2000 # Turn light 1 Red on and wait for 2 seconds
@@ -264,7 +264,7 @@ Flashes;Room/group;Color;MinOn;MaxOn;MinOff;MaxOff;MinRepeat;MaxRepeat;MinPause;
 Cycles;Room/group;Color;MinWaitTime;MaxWaitTime # Cycles tables starts here
 TrafficLight;Light2Red;Red # Turn light 2 Red on, without waiting (to start cycle)
 TrafficLight;Light1Green;Green;5000 # Turn light 1 Green on and wait for 5 seconds
-TrafficLight;Light1Green; # Turn light 1 Green off, without waiting
+TrafficLight;Light1Green; # Turn light 1 Green off², without waiting
 TrafficLight;Light1Orange;Orange;1000 # Turn light 1 orange on and wait for one second
 TrafficLight;Light1Orange # Turn light 1 orange off, without waiting
 TrafficLight;Light1Red;Red;2000 # Turn light 1 Red on and wait for 2 seconds
@@ -498,7 +498,6 @@ Then we have flags used to control message types to display/send. They're all us
 - `Display debug messages` makes what we think it will,
 - `Display verbose messages` add ore messages to the trace,
 - `Display Java traces` display traces of JavaScript messages,
-- `Display tables after loading` display tables content after loading them,
 - `Send traces to syslog` allows to send trace to `syslog` server.
 
 `Restart` button is used to ... restart module (still well done!). It's useful when modifying a parameter needing rebooting ESP (like parameters linked to LED or WiFi).
@@ -597,13 +596,11 @@ Embedded web server answer to the following URL:
 - `/command/enable/debug` : arms `Display debug messages` flag,
 - `/command/enable/verbose` : arms `Display verbose messages` flag,
 - `/command/enable/java` : arms `Display Java traces` flag,
-- `/command/enable/table` : arms `Display table after loading` flag,
 - `/command/enable/syslog` : arms `Send traces to syslog` flag,
 - `/command/disable/enter` : disarms `Display routing entering` flag,
 - `/command/disable/debug` : disarms `Display debug messages` flag,
 - `/command/disable/verbose` : disarms `Display verbose messages` flag,
 - `/command/disable/java` : disarms `Display Java traces` flag,
-- `/command/disable/table` : disarms `Display table after loading` flag,
 - `/command/disable/syslog` : disarms `Send traces to syslog` flag,
 - `/languages` : Returns supported languages list,
 - `/changed` : change value of a variables (internal use),
@@ -1103,7 +1100,6 @@ Viennent ensuite des indicateurs utilisés pour contrôler les types de message 
 - `Affichage des messages de déverminage` fait ce qu'on pense qu'il va faire,
 - `Affichage des messages verbeux` ajoute plus de messages à la trace,
 - `Affichage des traces Java` affiche des messages de trace des modules JavaScript,
-- `Affichage des tables au chargement` affiche le contenu des tables après leur chargement,
 - `Envoi des traces à Syslog` permet d'activer l'envoi des traces au serveur `syslog`.
 
 Le bouton `Relancer` permet de ... relancer le module (encore bien vu!). Il est utile lorsqu'on modifie un paramètre qui nécessite un redémarrage (comme tout ce qui touche aux caractéristiques du ruban ou aux réglages du WiFi).
@@ -1201,13 +1197,11 @@ Le serveur Web embarqué répond aux URL suivantes :
 - `/command/enable/debug` : arme l'indicateur `Affichage des messages de déverminage`,
 - `/command/enable/verbose` : arme l'indicateur `Affichage des messages verbeux`,
 - `/command/enable/java` : arme l'indicateur `Affichage des traces Java`,
-- `/command/enable/table` : arme l'indicateur `Affichage des tables au chargement`,
 - `/command/enable/syslog` : arme l'indicateur `Envoi des traces à syslog`,
 - `/command/disable/enter` : désarme l'indicateur `Affichage des entrées de routines`,
 - `/command/disable/debug` : désarme l'indicateur `Affichage des messages de déverminage`,
 - `/command/disable/verbose` : désarme l'indicateur `Affichage des messages verbeux`,
 - `/command/disable/java` : désarme l'indicateur `Affichage des traces Java`,
-- `/command/disable/table` : désarme l'indicateur `Affichage des tables au chargement`,
 - `/command/disable/syslog` : désarme l'indicateur `Envoi des traces à syslog`,
 - `/languages` : Retourne la liste des langues supportées,
 - `/changed` : change la valeur d'une variable (utilisation interne),

@@ -15,7 +15,6 @@
     "traceDebug": "Display debug messages",
     "traceVerbose": "Display verbose messages",
     "traceJava": "Display Java traces",
-    "traceTable": "Display tables after loading",
     "traceSyslog": "Send trace to syslog",
     "syslogServer": "Syslog server:",
     "syslogPort": "Syslog port:",

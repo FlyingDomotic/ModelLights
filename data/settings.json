@@ -8,6 +8,7 @@
   "traceVerbose": false,
   "traceJava": false,
   "traceSyslog": false,
+  "traceTable": false,
   "serverLanguage": "fr",
   "ledCount": 100,
   "ledPin": 4,
