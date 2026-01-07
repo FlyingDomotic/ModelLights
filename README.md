@@ -380,7 +380,7 @@ Next line is used to set global LED luminosity, to adapt it to presentation's ro
 
 We start and stop simulation with buttons of same name.
 
-Simulated time is displayed between these two buttons. It's updated in real time when simulation is active.
+Simulated time is displayed between these two buttons. It's updated in real time when simulation is active, `Stopped at xx:xx` is displayed else.
 
 #### LED test frame
 
@@ -985,7 +985,7 @@ La ligne suivante permet de régler la luminosité globale des LED, afin de s'ad
 
 On démarre et arrête la simulation par les boutons du même nom.
 
-L'heure simulée est indiquée entre ces deux boutons. Elle est mise à jour en temps réel lorsque la simulation est active.
+L'heure simulée est indiquée entre ces deux boutons. Elle est mise à jour en temps réel lorsque la simulation est active, sinon on affichera "Arrêté à xx:xx".
 
 #### Le cadre de test des LED
 

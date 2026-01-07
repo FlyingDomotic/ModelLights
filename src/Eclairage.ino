@@ -1,4 +1,4 @@
-#define VERSION "26.1.6-1"
+#define VERSION "26.1.7-1"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -461,7 +461,7 @@ void startLight(void);
 void stopLight(void);
 void sendLight(void);
 void clearAllLights(void);
-void formatTime(const int time, char* buffer, const size_t bufferLen);
+void formatTime(const int time, char* buffer, const size_t bufferLen, char* prefix = emptyChar);
 uint8_t percent(const uint16_t value, const uint16_t percentage);
 void uploadLoop(void);
 void setLedAgenda(const uint16_t agendaPtr);
@@ -1118,8 +1118,6 @@ void handleUpload(AsyncWebServerRequest *request, String fileName, size_t index,
             // Rename file
             LittleFS.rename("/tmpfile.tmp", fileName);
             lastUploadedFile = fileName;
-            request->send(lastUploadStatus, "Upload error");
-        }
     }
 }
 
@@ -1884,8 +1882,16 @@ void sendWebServerUpdate(void) {
     data["serverName"] = espName.c_str();
     data["serverVersion"] = VERSION;
     data["wifiState"] = wifiState.c_str();
-    char buffer2[6];
+    char buffer2[20];
+    if (simulationActive) {
     formatTime(simulationTime, buffer2, sizeof(buffer2));           // Format time
+    } else {
+        #ifdef VERSION_FRANCAISE
+            formatTime(simulationTime, buffer2, sizeof(buffer2), "Arrêté à ");
+        #else
+            formatTime(simulationTime, buffer2, sizeof(buffer2), "Stopped at ");
+        #endif
+    }
     data["currentTime"] = buffer2;
     #ifdef ESP32
         data["freeMemory"] = ESP.getFreeHeap();
@@ -2370,8 +2376,8 @@ void clearAllLights(void) {
 }
 
 // Format a time in minutes as hh:mm
-void formatTime(const int time, char* buffer, const size_t bufferLen){
-    snprintf_P(buffer, bufferLen, "%02d:%02d", time / 60, time - ((time / 60) *60));
+void formatTime(const int time, char* buffer, const size_t bufferLen, char* prefix){
+    snprintf_P(buffer, bufferLen, "%s%02d:%02d", prefix, time / 60, time - ((time / 60) *60));
 }
 
 // Activate light simulation
