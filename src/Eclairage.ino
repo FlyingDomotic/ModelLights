@@ -1,4 +1,4 @@
-#define VERSION "26.1.7-2"
+#define VERSION "26.1.15-1"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -2431,6 +2431,7 @@ void startLight(void) {
         }
         leds.show();
     }
+    sendAnUpdateFlag = true;
 }
 
 // Set light as specified in a given agenda line number
@@ -2526,6 +2527,7 @@ void stopLight(void) {
     #else
         trace_info("Stoping simulation");
     #endif
+    sendAnUpdateFlag = true;
 }
 
 // Set some LED as specified on screen
