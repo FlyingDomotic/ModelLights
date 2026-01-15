@@ -1,4 +1,4 @@
-#define VERSION "26.1.15-1"
+#define VERSION "26.1.15-2"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -1592,8 +1592,12 @@ void tableReceived(AsyncWebServerRequest *request) {
             if (!tableRow)  {                                       // Set header
                 snprintf_P(header, sizeof(header), "Row 1st Cnt Int (%s)\n", roomName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d\n", header, tableRow,
-                roomTable[tableRow].firstLed, roomTable[tableRow].ledCount, roomTable[tableRow].intensity);
+            if (roomCount) {                                        // Any room defined?
+                snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d\n", header, tableRow,
+                    roomTable[tableRow].firstLed, roomTable[tableRow].ledCount, roomTable[tableRow].intensity);
+            } else {
+                snprintf_P((char*) buffer, maxLen, "%s", header);
+            }
             tableRow++;                                             // Next table index
             if (tableRow >= roomCount+1) {                          // Are we at end of table?
                 tablePtr++;                                         // Next table
@@ -1603,8 +1607,13 @@ void tableReceived(AsyncWebServerRequest *request) {
             if (!tableRow)  {                                       // Set header
                 snprintf_P(header, sizeof(header), "Row     Name Rom (%s)\n", groupName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %8x %3d\n", header, tableRow,
-                groupTable[tableRow].crc, groupTable[tableRow].room);
+            if (groupCount) {
+                snprintf_P((char*) buffer, maxLen, "%s%3d %8x %3d\n", header, tableRow,
+                    groupTable[tableRow].crc, groupTable[tableRow].room);
+            } else {
+                snprintf_P((char*) buffer, maxLen, "%s", header);
+
+            }
             tableRow++;                                             // Next table index
             if (tableRow >= groupCount) {                           // Are we at end of table?
                 tablePtr++;                                         // Next table
@@ -1614,8 +1623,12 @@ void tableReceived(AsyncWebServerRequest *request) {
             if (!tableRow)  {                                       // Set header
                 snprintf_P(header, sizeof(header), "Row   R   G   B (%s)\n", colorName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d\n", header, tableRow,
-                colorTable[tableRow].r, colorTable[tableRow].g, colorTable[tableRow].b);
+            if (colorCount) {
+                snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d\n", header, tableRow,
+                    colorTable[tableRow].r, colorTable[tableRow].g, colorTable[tableRow].b);
+            } else {
+                snprintf_P((char*) buffer, maxLen, "%s", header);
+            }
             tableRow++;                                             // Next table index
             if (tableRow >= colorCount+1) {                         // Are we at end of table?
                 tablePtr++;                                         // Next table
@@ -1625,13 +1638,17 @@ void tableReceived(AsyncWebServerRequest *request) {
             if (!tableRow)  {                                       // Set header
                 snprintf_P(header, sizeof(header), "Row Idex Col Sta  Wait  Rept OnMin OnMax OfMin OfMax RpMin RpMax Psin PsMax (%s)\n", flashName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %4d %3d %3d %5d %5d %5d %5d %5d %5d %5d %5d %5d %5d\n", header, tableRow,
-                flashTable[tableRow].roomOrGroup, flashTable[tableRow].color, flashTable[tableRow].state,
-                flashTable[tableRow].waitTime, flashTable[tableRow].pendingRepeats,
-                flashTable[tableRow].onMin, flashTable[tableRow].onMax,
-                flashTable[tableRow].offMin, flashTable[tableRow].offMax,
-                flashTable[tableRow].repeatMin, flashTable[tableRow].repeatMax,
-                flashTable[tableRow].pauseMin, flashTable[tableRow].pauseMax);
+            if (flashCount) {
+                snprintf_P((char*) buffer, maxLen, "%s%3d %4d %3d %3d %5d %5d %5d %5d %5d %5d %5d %5d %5d %5d\n", header, tableRow,
+                    flashTable[tableRow].roomOrGroup, flashTable[tableRow].color, flashTable[tableRow].state,
+                    flashTable[tableRow].waitTime, flashTable[tableRow].pendingRepeats,
+                    flashTable[tableRow].onMin, flashTable[tableRow].onMax,
+                    flashTable[tableRow].offMin, flashTable[tableRow].offMax,
+                    flashTable[tableRow].repeatMin, flashTable[tableRow].repeatMax,
+                    flashTable[tableRow].pauseMin, flashTable[tableRow].pauseMax);
+            } else {
+                snprintf_P((char*) buffer, maxLen, "%s", header);
+            }
             tableRow++;                                             // Next table index
             if (tableRow >= flashCount+1) {                         // Are we at end of table?
                 tablePtr++;                                         // Next table
@@ -1641,9 +1658,13 @@ void tableReceived(AsyncWebServerRequest *request) {
             if (!tableRow)  {                                       // Set header
                 snprintf_P(header, sizeof(header), "Row Run Act Cnt  Wait (%s)\n", cycleName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d %5d\n", header, tableRow,
-                cycleTable[tableRow].isActive, cycleTable[tableRow].activeSequence,
-                cycleTable[tableRow].sequenceCount, cycleTable[tableRow].waitTime);
+            if (cycleCount) {
+                snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %3d %5d\n", header, tableRow,
+                    cycleTable[tableRow].isActive, cycleTable[tableRow].activeSequence,
+                    cycleTable[tableRow].sequenceCount, cycleTable[tableRow].waitTime);
+            } else {
+                snprintf_P((char*) buffer, maxLen, "%s", header);
+            }
             tableRow++;                                             // Next table index
             if (tableRow >= cycleCount) {                           // Are we at end of table?
                 tablePtr++;                                         // Next table
@@ -1653,10 +1674,14 @@ void tableReceived(AsyncWebServerRequest *request) {
             if (!tableRow)  {                                       // Set header
                 snprintf_P(header, sizeof(header), "Row Cyc Seq Idex Clr  Wait MaxWt (Sequence)\n");
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %4d %3d %5d %5d\n", header, tableRow,
-                sequenceTable[tableRow].cycle, sequenceTable[tableRow].sequence,
-                sequenceTable[tableRow].roomOrGroup, sequenceTable[tableRow].color,
-                sequenceTable[tableRow].waitTime, sequenceTable[tableRow].maxWaitTime);
+            if (sequenceCount) {
+                snprintf_P((char*) buffer, maxLen, "%s%3d %3d %3d %4d %3d %5d %5d\n", header, tableRow,
+                    sequenceTable[tableRow].cycle, sequenceTable[tableRow].sequence,
+                    sequenceTable[tableRow].roomOrGroup, sequenceTable[tableRow].color,
+                    sequenceTable[tableRow].waitTime, sequenceTable[tableRow].maxWaitTime);
+            } else {
+                snprintf_P((char*) buffer, maxLen, "%s", header);
+            }
             tableRow++;                                             // Next table index
             if (tableRow >= sequenceCount) {                        // Are we at end of table?
                 tablePtr++;                                         // Next table
@@ -1666,10 +1691,14 @@ void tableReceived(AsyncWebServerRequest *request) {
             if (!tableRow)  {                                       // Set header
                 snprintf_P(header, sizeof(header), "Row Flg Time Ind Oth Int (%s)\n", agendaName);
             }
-            snprintf_P((char*) buffer, maxLen, "%s%3d %3d %4d %3d %3d %3d\n", header, tableRow,
-                agendaTable[tableRow].tableType, agendaTable[tableRow].time,
-                agendaTable[tableRow].tableIndex, agendaTable[tableRow].otherData,
-                agendaTable[tableRow].intensity);
+            if (agendaCount) {
+                snprintf_P((char*) buffer, maxLen, "%s%3d %3d %4d %3d %3d %3d\n", header, tableRow,
+                    agendaTable[tableRow].tableType, agendaTable[tableRow].time,
+                    agendaTable[tableRow].tableIndex, agendaTable[tableRow].otherData,
+                    agendaTable[tableRow].intensity);
+            } else {
+                snprintf_P((char*) buffer, maxLen, "%s", header);
+            }
             tableRow++;                                             // Next table index
             if (tableRow >= agendaCount) {                          // Are we at end of table?
                 tablePtr++;                                         // Next table
@@ -1887,9 +1916,9 @@ void sendWebServerUpdate(void) {
         formatTime(simulationTime, buffer2, sizeof(buffer2));       // Format time
     } else {
         #ifdef VERSION_FRANCAISE
-            formatTime(simulationTime, buffer2, sizeof(buffer2), "Arrêté à ");
+            formatTime(simulationTime, buffer2, sizeof(buffer2), (char*) "Arrêté à ");
         #else
-            formatTime(simulationTime, buffer2, sizeof(buffer2), "Stopped at ");
+            formatTime(simulationTime, buffer2, sizeof(buffer2), (char*) "Stopped at ");
         #endif
     }
     data["currentTime"] = buffer2;
@@ -2916,7 +2945,7 @@ int readAllTables(READ_FILE_PARAMETERS) {
             fileFormat = colorFileFormat;
         } else if (startWith(fileLineData, cycleName) || startWith(fileLineData, cycleName2)) {
             fileFormat = cycleFileFormat;
-        } else if (startWith(fileLineData, "Date;")) {
+        } else if (startWith(fileLineData, "Heure;") || startWith(fileLineData, "Time;")) {
             fileFormat = agendaFileFormat;
         }
         tableLineNumber = 0;                                        // Reset table line number
