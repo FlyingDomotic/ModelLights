@@ -1,4 +1,6 @@
-#define VERSION "26.1.16-1"
+#define VERSION "26.1.16-2"
+
+// ToDo: afficher recouvrement de LEDs
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -1983,9 +1985,9 @@ void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t 
     if (isGroup(roomOrGroup)) {
         // Scan all groups lines for this group id
         uint16_t groupIndex = getGroup(roomOrGroup);                // Get group index
-        for (int i =0; i < groupCount; i++) {
-            if (groupTable[i].crc == groupTable[groupIndex].crc) {  // Are we on the same group?
-                roomTable_s roomData = roomTable[groupTable[i].room];               // Load room from group
+        for (int j=0; j < groupCount; j++) {
+            if (groupTable[j].crc == groupTable[groupIndex].crc) {  // Are we on the same group?
+                roomTable_s roomData = roomTable[groupTable[j].room];               // Load room from group
                 uint8_t intensity;
                 if (!roomData.intensity || !otherIntensity) {       // If one intensity is zero
                     intensity = 0;                                  // Intensity = 0
@@ -1997,18 +1999,18 @@ void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t 
                 uint8_t b = percent(colorData.b, intensity);
                 if (legend != nullptr) {
                     #ifdef VERSION_FRANCAISE
-                        trace_debug_P("LED %d à %d mises à (%d, %d, %d) %s",
+                        trace_debug_P("LED %d à %d mises à (%d, %d, %d), sauve %08x %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                             colorData.r, colorData.g, colorData.b,
-                            legend);
+                            leds.getPixelColor(roomData.firstLed-1), legend);
                     #else
-                        trace_debug_P("LED %d to %d set to (%d, %d, %d) %s",
+                        trace_debug_P("LED %d to %d set to (%d, %d, %d), save %08x %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                             colorData.r, colorData.g, colorData.b,
-                            legend);
+                            leds.getPixelColor(roomData.firstLed-1),legend);
                     #endif
                 }
-                for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
+                for (int i=roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
                     if (isFlash) {
                         previousColor[i-1].previousColor = leds.getPixelColor(i-1);
                     }
@@ -2326,19 +2328,17 @@ void activateFlash (const uint8_t flash) {
             flashData.waitTime = flashData.onMin;
         }
         char legend[50] = {0};
-        if (traceVerbose) {
-            #ifdef TRACE_FLASH
-                #ifdef VERSION_FRANCAISE
-                    snprintf_P(legend, sizeof(legend), "(F%dP%d)",
-                        flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
-                #else
-                    snprintf_P(legend, sizeof(legend), "(F%dR%d)",
-                        flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
-                #endif
+        if (traceDebug) {
+            #ifdef VERSION_FRANCAISE
+                snprintf_P(legend, sizeof(legend), "(F%dP%d)",
+                    flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
+            #else
+                snprintf_P(legend, sizeof(legend), "(F%dR%d)",
+                    flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
             #endif
         }
         setRoomOrGroup(flashData.roomOrGroup, flashData.color,
-            traceVerbose? legend : nullptr,
+            traceDebug? legend : nullptr,
             flashData.intensity, true);                             // Set color for room or group, saving previous color
     } else if (flashData.state == flashIsOn) {                      // Flash is on
         if (!flashData.pendingRepeats) {                            // No more repeat pending
@@ -2360,7 +2360,7 @@ void activateFlash (const uint8_t flash) {
         }
         // For all LEDs in this room
         char legend[50];
-        if (traceVerbose) {
+        if (traceDebug) {
             #ifdef VERSION_FRANCAISE
                 snprintf_P(legend, sizeof(legend), "(F%dP%d)",
                     flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
@@ -2370,7 +2370,7 @@ void activateFlash (const uint8_t flash) {
             #endif
         }
         revertRoomOrGroup(flashData.roomOrGroup,
-            traceVerbose? legend : nullptr);
+            traceDebug? legend : nullptr);
     }
     flashData.lastRunTime = millis();                               // Save last change date
     flashTable[flash] = flashData;                                  // Save modified data
@@ -2403,6 +2403,7 @@ void clearAllLights(void) {
     colorTable_s color = colorTable[0];
     for (uint16_t i = 0; i < ledCount; i++) {
         leds.setPixelColor(i, color.r, color.g, color.b);
+        previousColor[i].previousColor = 0;
     }
     setGlobalLuminosity(globalLuminosity);
     leds.show();
@@ -2472,14 +2473,17 @@ void setLedAgenda(const uint16_t agendaPtr) {
     agendaTable_s agendaData = agendaTable[agendaIndex];            // Get agenda data
 
     char legend[50];
-    #ifdef VERSION_FRANCAISE
-        snprintf_P(legend, sizeof(legend), "(A%dP%dC%d)",
-            agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
-    #else
-        snprintf_P(legend, sizeof(legend), "(A%R%dC%d)",
-            agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
-    #endif
-    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend, agendaData.intensity);
+    if (traceDebug) {
+        #ifdef VERSION_FRANCAISE
+            snprintf_P(legend, sizeof(legend), "(A%dP%dC%d)",
+                agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
+        #else
+            snprintf_P(legend, sizeof(legend), "(A%R%dC%d)",
+                agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
+        #endif
+    }
+    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData,
+        traceDebug? legend : nullptr, agendaData.intensity);
 }
 
 // Set group of light as specified in a given agenda line number
@@ -2487,14 +2491,17 @@ void setGroupAgenda(const uint16_t agendaPtr) {
     agendaTable_s agendaData = agendaTable[agendaIndex];            // Get agenda data
 
     char legend[50];
-    #ifdef VERSION_FRANCAISE
-        snprintf_P(legend, sizeof(legend), "(A%dG%dC%d)",
-            agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
-    #else
-        snprintf_P(legend, sizeof(legend), "(A%G%dC%d)",
-            agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
-    #endif
-    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend, agendaData.intensity);
+    if (traceDebug) {
+        #ifdef VERSION_FRANCAISE
+            snprintf_P(legend, sizeof(legend), "(A%dG%dC%d)",
+                agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
+        #else
+            snprintf_P(legend, sizeof(legend), "(A%G%dC%d)",
+                agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
+        #endif
+    }
+    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, 
+        traceDebug? legend : nullptr, agendaData.intensity);
 }
 
 // Set cycle as specified in a given agenda line number
