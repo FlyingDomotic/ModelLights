@@ -1,4 +1,4 @@
-#define VERSION "26.1.16-3"
+#define VERSION "26.1.16-4"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -460,7 +460,7 @@ uint16_t setGroup(uint16_t group);
 uint16_t getGroup(uint16_t group);
 void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend=nullptr, uint8_t otherItensity=100, bool isFlash=false);
 void revertRoomOrGroup(uint16_t roomOrGroup, char* legend=nullptr);
-void lightSetup();
+void lightSetup(void);
 void lightLoop(void);
 void lightParameterChanged(void);
 void startLight(void);
@@ -498,6 +498,7 @@ int checkValueRange(const char* stringValue, const int fieldNumber, uint16_t *va
     const uint16_t minValue, const uint16_t maxValue, const uint16_t defaultValue);
 int signalError(const int errorCode, const int integerValue = 0, const char* stringValue = emptyChar);
 bool waitForEventsEmpty(void);
+void checkAgenda(void);
 
 //          ----------------------------
 //          ---- Functions/routines ----
@@ -2107,7 +2108,7 @@ void revertRoomOrGroup(uint16_t roomOrGroup, char* legend) {
 }
 
 // Setup for lights
-void lightSetup() {
+void lightSetup(void) {
     loadAgenda();
     uint16_t ribbonType = 0;
     if (ledType == "RGB") {
@@ -3401,6 +3402,8 @@ int loadAgendaDetails(void) {
     errorCode = readFile(fileToStart.c_str(), &readAllTables);      // Load all tables
     if (errorCode) return errorCode;
 
+    checkAgenda();
+
     if (traceTable) {
         trace_debug_P("Row 1st Cnt Int (%s)", roomName);
         for (int i = 0; i < roomCount; i++) {
@@ -3455,6 +3458,29 @@ int loadAgendaDetails(void) {
         }
     }
     return 0;
+}
+
+// Check agenda for warnings/errors/inconsistencies
+void checkAgenda(void){
+    int startLed;
+    int endLed;
+    
+    // Scan all rooms but last
+    for (int i=0; i < roomCount-1; i++) {
+        // Load start and end LEDs
+        startLed = roomTable[i].firstLed;
+        endLed = startLed + roomTable[i].ledCount -1;
+        // Scan all remaining  rooms
+        for (int j=i+1; j < roomCount; j++) {
+            if (roomTable[j].firstLed <= endLed && (roomTable[j].firstLed + roomTable[j].ledCount-1) >= startLed) {
+            #ifdef VERSION_FRANCAISE
+                trace_info_P("Chevauchement des LED entre les pièces %d et %d", i, j);
+            #else
+                trace_info_P("LED overlapping between rooms %d and %d", i, j);
+            #endif
+            }
+        }
+    }
 }
 
 //          -------------------------------------
