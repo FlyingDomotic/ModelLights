@@ -1,4 +1,6 @@
-#define VERSION "26.1.16-4"
+#define VERSION "26.1.16-5"
+
+#define SERIAL_FLUSH
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -354,14 +356,14 @@ char emptyChar[] = "";                                              // Empty fil
 char configurationName[32] = {0};                                   // Configuration file name
 int tableLineNumber = 0;                                            // Table line number
 int fileLineNumber = 0;                                             // File line number
-roomTable_s* roomTable = new roomTable_s[0];                        // Room table
-colorTable_s* colorTable = new colorTable_s[0];                     // Color table
+roomTable_s* roomTable = new roomTable_s[0+1];                      // Room table
+colorTable_s* colorTable = new colorTable_s[0+1];                   // Color table
 flashTable_s* flashTable = new flashTable_s[0+1];                   // Flash table
 cycleTable_s* cycleTable = new cycleTable_s[0];                     // Cycle table
 groupTable_s* groupTable = new groupTable_s[0];                     // Group table
 sequenceTable_s* sequenceTable = new sequenceTable_s[0];            // Sequence table
 agendaTable_s* agendaTable = new agendaTable_s[0];                  // Agenda table
-previousColor_s* previousColor = new previousColor_s[0];            // Previous color table
+previousColor_s* previousColor;                                     // Previous color table
 
 //          --------------------------------------
 //          ---- Function/routines definition ----
@@ -803,6 +805,7 @@ String getResetCause(void) {
 
 // Dumps all settings on screen
 void dumpSettings(void) {
+    if (traceEnter) enterRoutine(__func__);
     trace_info_P("ssid = %s", ssid.c_str());
     trace_info_P("pwd = %s", pwd.c_str());
     trace_info_P("accessPointPwd = %s", accessPointPwd.c_str());
@@ -1078,6 +1081,7 @@ void debugReceived(AsyncWebServerRequest *request) {
 
 // Called when /upload data is received
 void startUpload(AsyncWebServerRequest *request) {
+    if (traceEnter) enterRoutine(__func__);
     // Load file name
     if(request->hasParam("file", true, true)) {
         const AsyncWebParameter* fileParameter = request->getParam("file", true, true);
@@ -2007,15 +2011,29 @@ void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t 
                 if (legend != nullptr) {
                     ledColor_s ledColor = splitNeoPixelColor(leds.getPixelColor(roomData.firstLed-1));
                     #ifdef VERSION_FRANCAISE
-                        trace_debug_P("LED %d à %d mises à (%d, %d, %d), sauve (%d, %d, %d) %s",
-                            roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                            colorData.r, colorData.g, colorData.b,
-                            ledColor.r, ledColor.g, ledColor.b, legend);
-                    #else
-                        trace_debug_P("LED %d to %d set to (%d, %d, %d), save (%d, %d, %d) %s",
-                            roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                            colorData.r, colorData.g, colorData.b,
-                            ledColor.r, ledColor.g, ledColor.b, legend);
+                        if (isFlash) {
+                            trace_debug_P("LED %d à %d mises à (%d, %d, %d), sauve (%d, %d, %d) %s",
+                                roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                                colorData.r, colorData.g, colorData.b,
+                                ledColor.r, ledColor.g, ledColor.b, legend);
+                        } else {
+                            trace_debug_P("LED %d à %d mises à (%d, %d, %d) %s",
+                                roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                                colorData.r, colorData.g, colorData.b,
+                                legend);
+                        }
+                   #else
+                        if (isFlash) {
+                            trace_debug_P("LED %d to %d set to (%d, %d, %d), save (%d, %d, %d) %s",
+                                roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                                colorData.r, colorData.g, colorData.b,
+                                ledColor.r, ledColor.g, ledColor.b, legend);
+                        } else {
+                            trace_debug_P("LED %d to %d set to (%d, %d, %d) %s",
+                                roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                                colorData.r, colorData.g, colorData.b,
+                                legend);
+                        }
                     #endif
                 }
                 for (int i=roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
@@ -2040,17 +2058,31 @@ void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t 
         if (legend != nullptr) {
             ledColor_s ledColor = splitNeoPixelColor(leds.getPixelColor(roomData.firstLed-1));
             #ifdef VERSION_FRANCAISE
-                trace_debug_P("LED %d à %d mises à (%d, %d, %d), sauve (%d, %d, %d) %s",
-                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    colorData.r, colorData.g, colorData.b,
-                    ledColor.r, ledColor.g, ledColor.b,
-                    legend);
+                if (isFlash) {
+                    trace_debug_P("LED %d à %d mises à (%d, %d, %d), sauve (%d, %d, %d) %s",
+                        roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                        colorData.r, colorData.g, colorData.b,
+                        ledColor.r, ledColor.g, ledColor.b,
+                        legend);
+                } else {
+                    trace_debug_P("LED %d à %d mises à (%d, %d, %d) %s",
+                        roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                        colorData.r, colorData.g, colorData.b,
+                        legend);
+                }
             #else
-                trace_debug_P("LED %d to %d set to (%d, %d, %d), save (%d, %d, %d)  %s",
-                    roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    colorData.r, colorData.g, colorData.b,
-                    ledColor.r, ledColor.g, ledColor.b,
-                    legend);
+                if (isFlash) {
+                    trace_debug_P("LED %d to %d set to (%d, %d, %d), save (%d, %d, %d) %s",
+                        roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                        colorData.r, colorData.g, colorData.b,
+                        ledColor.r, ledColor.g, ledColor.b,
+                        legend);
+                } else {
+                    trace_debug_P("LED %d to %d set to (%d, %d, %d) %s",
+                        roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
+                        colorData.r, colorData.g, colorData.b,
+                        legend);
+                }
             #endif
         }
         for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
@@ -2109,6 +2141,7 @@ void revertRoomOrGroup(uint16_t roomOrGroup, char* legend) {
 
 // Setup for lights
 void lightSetup(void) {
+    if (traceEnter) enterRoutine(__func__);
     loadAgenda();
     uint16_t ribbonType = 0;
     if (ledType == "RGB") {
@@ -2136,6 +2169,8 @@ void lightSetup(void) {
         return;
     }
     trace_debug_P("%d LED, type %s %d kHz, pin %d", ledCount, ledType.c_str(), ledFrequency, ledPin);
+    previousColor = new previousColor_s[ledCount];                  // Create previous color table
+    memset(previousColor, 0, ledCount * sizeof(previousColor_s));
     leds.updateLength(ledCount);                                    // Set LED count
     leds.updateType(ribbonType);                                    // Set LED type
     leds.setPin(ledPin);                                            // Set LED pin
@@ -2288,7 +2323,7 @@ void activateSequence(const uint16_t sequence) {
     }
 
     setRoomOrGroup(sequenceData.roomOrGroup, sequenceData.color,
-        traceVerbose? legend : nullptr, 100);
+        traceVerbose? legend : nullptr, 100, false);
     if (sequenceData.maxWaitTime) {
         cycleTable[sequenceData.cycle].waitTime =
             random (sequenceData.waitTime, sequenceData.maxWaitTime+1); // Random wait time
@@ -2341,7 +2376,7 @@ void activateFlash (const uint8_t flash) {
             flashData.waitTime = flashData.onMin;
         }
         char legend[50] = {0};
-        if (traceDebug) {
+        if (traceVerbose) {
             #ifdef VERSION_FRANCAISE
                 snprintf_P(legend, sizeof(legend), "(F%dP%d)",
                     flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
@@ -2351,7 +2386,7 @@ void activateFlash (const uint8_t flash) {
             #endif
         }
         setRoomOrGroup(flashData.roomOrGroup, flashData.color,
-            traceDebug? legend : nullptr,
+            traceVerbose? legend : nullptr,
             flashData.intensity, true);                             // Set color for room or group, saving previous color
     } else if (flashData.state == flashIsOn) {                      // Flash is on
         if (!flashData.pendingRepeats) {                            // No more repeat pending
@@ -2373,7 +2408,7 @@ void activateFlash (const uint8_t flash) {
         }
         // For all LEDs in this room
         char legend[50];
-        if (traceDebug) {
+        if (traceVerbose) {
             #ifdef VERSION_FRANCAISE
                 snprintf_P(legend, sizeof(legend), "(F%dP%d)",
                     flash+FLASH_OFFSET, flashData.roomOrGroup+ROOM_OFFSET);
@@ -2383,7 +2418,7 @@ void activateFlash (const uint8_t flash) {
             #endif
         }
         revertRoomOrGroup(flashData.roomOrGroup,
-            traceDebug? legend : nullptr);
+            traceVerbose? legend : nullptr);
     }
     flashData.lastRunTime = millis();                               // Save last change date
     flashTable[flash] = flashData;                                  // Save modified data
@@ -2409,6 +2444,7 @@ ledColor_s splitNeoPixelColor(uint32_t color) {
 
 // Called when light parameters changed
 void lightParameterChanged(void) {
+    if (traceEnter) enterRoutine(__func__);
     simulationStart = (startTimeHour * 60) + startTimeMinute;
     simulationStop = (endTimeHour * 60) + endTimeMinute;
     minuteDuration = cycleTime * 60000.0 / (float) (simulationStop + 1 - simulationStart);
@@ -2416,15 +2452,21 @@ void lightParameterChanged(void) {
 
 // Clear (turn off) all lights
 void clearAllLights(void) {
+    if (traceEnter) enterRoutine(__func__);
     #ifdef VERSION_FRANCAISE
         trace_info("Tout éteint");
     #else
         trace_info("Clearing all lights");
     #endif
     colorTable_s color = colorTable[0];
+    if (agendaError) {
+        color.r = 0;
+        color.g = 0;
+        color.b = 0;
+    }
     for (uint16_t i = 0; i < ledCount; i++) {
         leds.setPixelColor(i, color.r, color.g, color.b);
-        previousColor[i].previousColor = 0;
+        //previousColor[i].previousColor = leds.getPixelColor(i);
     }
     setGlobalLuminosity(globalLuminosity);
     leds.show();
@@ -2504,7 +2546,7 @@ void setLedAgenda(const uint16_t agendaPtr) {
         #endif
     }
     setRoomOrGroup(agendaData.tableIndex, agendaData.otherData,
-        traceDebug? legend : nullptr, agendaData.intensity);
+        traceDebug? legend : nullptr, agendaData.intensity, false);
 }
 
 // Set group of light as specified in a given agenda line number
@@ -2522,7 +2564,7 @@ void setGroupAgenda(const uint16_t agendaPtr) {
         #endif
     }
     setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, 
-        traceDebug? legend : nullptr, agendaData.intensity);
+        traceDebug? legend : nullptr, agendaData.intensity, false);
 }
 
 // Set cycle as specified in a given agenda line number
@@ -2548,7 +2590,7 @@ void setCycleAgenda(const uint16_t agendaPtr) {
         for (int i=0; i < sequenceCount; i++) {                     // Scan all sequences
             sequenceData = sequenceTable[i];                        // Load sequence data
             if (sequenceData.color == agendaData.tableIndex) {      // Are we on the corresponding cycle?
-                setRoomOrGroup(sequenceData.roomOrGroup, 0);
+                setRoomOrGroup(sequenceData.roomOrGroup, 0, nullptr, 100, false);
             }
         }
     }
@@ -2582,6 +2624,7 @@ void setFlashAgenda(const uint16_t agendaPtr) {
 
 // Stop light simulation
 void stopLight(void) {
+    if (traceEnter) enterRoutine(__func__);
     simulationActive = false;                                       // Simulation is not active
     #ifdef VERSION_FRANCAISE
         trace_info("Fin simulation");
@@ -2593,6 +2636,7 @@ void stopLight(void) {
 
 // Set some LED as specified on screen
 void sendLight(void) {
+    if (traceEnter) enterRoutine(__func__);
     stopLight();
     if (enableClear) clearAllLights();
     roomTable_s roomData = roomTable[roomCount];
@@ -3363,9 +3407,7 @@ int loadAgendaDetails(void) {
     delete[] colorTable;
     delete[] groupTable;
     delete[] roomTable;
-    delete[] previousColor;
-    previousColor = new previousColor_s[ledCount];                  // Create previous color table
-    memset(previousColor, 0, ledCount * sizeof(previousColor_s));
+
     roomTable = new roomTable_s[roomCount+1];                       // Create room table
     memset(roomTable, 0, (roomCount+1) * sizeof(roomTable_s));
     groupTable = new groupTable_s[groupCount];                      // Create group table
@@ -3462,6 +3504,7 @@ int loadAgendaDetails(void) {
 
 // Check agenda for warnings/errors/inconsistencies
 void checkAgenda(void){
+    if (traceEnter) enterRoutine(__func__);
     int startLed;
     int endLed;
     
@@ -3490,6 +3533,7 @@ void checkAgenda(void){
 // Setup routine
 void setup(void) {
     traceEnter = true;
+    if (traceEnter) enterRoutine(__func__);
     logSetup();                                                     // Init log
     traceSetup();                                                   // Register trace
     #ifdef ESP8266
