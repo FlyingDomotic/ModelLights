@@ -1,7 +1,7 @@
 Pieces;Premiere lampe;Nombre de lampes;Luminosite # Table des pieces
 F1;1;2
-F2;2;1
-F3;3;2;70
+F2;3;1
+F3;4;2;70
 F4;6;1
 
 Groupes;Piece
