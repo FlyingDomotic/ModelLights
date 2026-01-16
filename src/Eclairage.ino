@@ -1,6 +1,4 @@
-#define VERSION "26.1.16-2"
-
-// ToDo: afficher recouvrement de LEDs
+#define VERSION "26.1.16-3"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -341,6 +339,13 @@ struct previousColor_s {                                            // Previous 
     uint32_t previousColor;                                         // Previous color
 };
 
+struct ledColor_s {                                                 // NeoPixel LED color (uint32_t version)
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t w;
+};
+
 int agendaError = -1;                                               // Error code of last agenda analysis
 char lastErrorMessage[100] = {0};                                   // Last agenda loading error message
 uint16_t agendaIndex = 0;                                           // Current position in agenda
@@ -474,6 +479,7 @@ void activateFlash (const uint8_t flash);
 uint8_t decodeHex(const char* hexa);
 uint32_t calculateCRC32(const char *data, size_t length);
 void setGlobalLuminosity(uint8_t luminosity);
+ledColor_s splitNeoPixelColor(uint32_t color);
 
 //  ---- Agenda routines ----
 
@@ -1998,16 +2004,17 @@ void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t 
                 uint8_t g = percent(colorData.g, intensity);
                 uint8_t b = percent(colorData.b, intensity);
                 if (legend != nullptr) {
+                    ledColor_s ledColor = splitNeoPixelColor(leds.getPixelColor(roomData.firstLed-1));
                     #ifdef VERSION_FRANCAISE
-                        trace_debug_P("LED %d à %d mises à (%d, %d, %d), sauve %08x %s",
+                        trace_debug_P("LED %d à %d mises à (%d, %d, %d), sauve (%d, %d, %d) %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                             colorData.r, colorData.g, colorData.b,
-                            leds.getPixelColor(roomData.firstLed-1), legend);
+                            ledColor.r, ledColor.g, ledColor.b, legend);
                     #else
-                        trace_debug_P("LED %d to %d set to (%d, %d, %d), save %08x %s",
+                        trace_debug_P("LED %d to %d set to (%d, %d, %d), save (%d, %d, %d) %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                             colorData.r, colorData.g, colorData.b,
-                            leds.getPixelColor(roomData.firstLed-1),legend);
+                            ledColor.r, ledColor.g, ledColor.b, legend);
                     #endif
                 }
                 for (int i=roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
@@ -2030,15 +2037,18 @@ void setRoomOrGroup(uint16_t roomOrGroup, uint16_t color, char* legend, uint8_t 
         uint8_t g = percent(colorData.g, intensity);
         uint8_t b = percent(colorData.b, intensity);
         if (legend != nullptr) {
+            ledColor_s ledColor = splitNeoPixelColor(leds.getPixelColor(roomData.firstLed-1));
             #ifdef VERSION_FRANCAISE
-                trace_debug_P("LED %d à %d mises à (%d, %d, %d) %s",
+                trace_debug_P("LED %d à %d mises à (%d, %d, %d), sauve (%d, %d, %d) %s",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                     colorData.r, colorData.g, colorData.b,
+                    ledColor.r, ledColor.g, ledColor.b,
                     legend);
             #else
-                trace_debug_P("LED %d to %d set to (%d, %d, %d) %s",
+                trace_debug_P("LED %d to %d set to (%d, %d, %d), save (%d, %d, %d)  %s",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
                     colorData.r, colorData.g, colorData.b,
+                    ledColor.r, ledColor.g, ledColor.b,
                     legend);
             #endif
         }
@@ -2060,14 +2070,15 @@ void revertRoomOrGroup(uint16_t roomOrGroup, char* legend) {
             if (groupTable[j].crc == groupTable[groupIndex].crc) {  // Are we on the same group?
                 roomTable_s roomData = roomTable[groupTable[j].room];// Load room from group
                 if (legend != nullptr) {
+                    ledColor_s ledColor = splitNeoPixelColor(previousColor[roomData.firstLed-1].previousColor);
                     #ifdef VERSION_FRANCAISE
-                        trace_debug_P("LED %d à %d restaurées à %08x (G%d) %s",
+                        trace_debug_P("LED %d à %d remises à (%d, %d, %d) (G%d) %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                            previousColor[roomData.firstLed-1].previousColor, j + GROUP_OFFSET, legend);
+                            ledColor.r, ledColor.g, ledColor.b, j + GROUP_OFFSET, legend);
                     #else
-                        trace_debug_P("LED %d to %d restored to %08x (G%d) %s",
+                        trace_debug_P("LED %d to %d restored to (%d, %d, %d) (G%d) %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                            previousColor[roomData.firstLed-1].previousColor, j + GROUP_OFFSET, legend);
+                            ledColor.r, ledColor.g, ledColor.b, j + GROUP_OFFSET, legend);
                     #endif
                 }
                 for (int i=roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
@@ -2078,14 +2089,15 @@ void revertRoomOrGroup(uint16_t roomOrGroup, char* legend) {
     } else {
         roomTable_s roomData = roomTable[roomOrGroup];              // Load room
         if (legend != nullptr) {
+            ledColor_s ledColor = splitNeoPixelColor(previousColor[roomData.firstLed-1].previousColor);
             #ifdef VERSION_FRANCAISE
-                trace_debug_P("LED %d à %d restaurées à %08x %s",
+                trace_debug_P("LED %d à %d remises à (%d, %d, %d) %s",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    previousColor[roomData.firstLed-1].previousColor, legend);
+                    ledColor.r, ledColor.g, ledColor.b, legend);
             #else
-                trace_debug_P("LED %d to %d restored to 08x %s",
+                trace_debug_P("LED %d to %d restored to (%d, %d, %d) %s",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    previousColor[roomData.firstLed-1].previousColor, legend);
+                    ledColor.r, ledColor.g, ledColor.b, legend);
             #endif
         }
         for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
@@ -2385,6 +2397,14 @@ void setGlobalLuminosity(uint8_t luminosity) {
     #endif
     leds.setBrightness(percent(255, luminosity));
 }
+
+// Split NeoPixel color in r/g/b/w
+ledColor_s splitNeoPixelColor(uint32_t color) {
+    ledColor_s splitColor;
+    memmove(&splitColor, &color, sizeof(splitColor));
+    return splitColor;
+}
+
 
 // Called when light parameters changed
 void lightParameterChanged(void) {
