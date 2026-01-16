@@ -1,4 +1,4 @@
-#define VERSION "26.1.15-2"
+#define VERSION "26.1.16-1"
 
 /*
  *     English: Light server based on ESP8266 or ESP32
@@ -292,7 +292,6 @@ struct colorTable_s {                                               // Color tab
 
 struct flashTable_s {                                               // Flash table
     uint32_t crc;
-    uint32_t previousColor;                                         // First LED previous color
     unsigned long lastRunTime;                                      // Last time this flash was run
     uint16_t waitTime;                                              // Time to wait before next sequence
     uint16_t pendingRepeats;                                        // Repeats still pending
@@ -675,7 +674,9 @@ trace_callback(traceCallback) {
         if (_level == FF_TRACE_LEVEL_ERROR || _level == FF_TRACE_LEVEL_WARN) {
             events.send(_message, "error");                         // Send message to destination
         } else if (_level != FF_TRACE_LEVEL_NONE) {
-            events.send(_message, "info");                          // Send message to destination
+            if (events.count() && (events.avgPacketsWaiting() < 5)) {// If any clients connected and less than 5 packets pending
+                events.send(_message, "info");                      // Send message to destination
+            }
         }
         // Send trace to syslog if needed
         #ifdef FF_TRACE_USE_SYSLOG
@@ -2053,21 +2054,21 @@ void revertRoomOrGroup(uint16_t roomOrGroup, char* legend) {
     if (isGroup(roomOrGroup)) {
         // Scan all groups lines for this group id
         uint16_t groupIndex = getGroup(roomOrGroup);                // Get group index
-        for (int i =0; i < groupCount; i++) {
-            if (groupTable[i].crc == groupTable[groupIndex].crc) {  // Are we on the same group?
-                roomTable_s roomData = roomTable[groupTable[i].room];               // Load room from group
+        for (int j=0; j < groupCount; j++) {
+            if (groupTable[j].crc == groupTable[groupIndex].crc) {  // Are we on the same group?
+                roomTable_s roomData = roomTable[groupTable[j].room];// Load room from group
                 if (legend != nullptr) {
                     #ifdef VERSION_FRANCAISE
-                        trace_debug_P("LED %d à %d restaurées %s",
+                        trace_debug_P("LED %d à %d restaurées à %08x (G%d) %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                            legend);
+                            previousColor[roomData.firstLed-1].previousColor, j + GROUP_OFFSET, legend);
                     #else
-                        trace_debug_P("LED %d to %d restored %s",
+                        trace_debug_P("LED %d to %d restored to %08x (G%d) %s",
                             roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                            legend);
+                            previousColor[roomData.firstLed-1].previousColor, j + GROUP_OFFSET, legend);
                     #endif
                 }
-                for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
+                for (int i=roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
                     leds.setPixelColor(i-1, previousColor[i-1].previousColor);
                 }
             }
@@ -2076,13 +2077,13 @@ void revertRoomOrGroup(uint16_t roomOrGroup, char* legend) {
         roomTable_s roomData = roomTable[roomOrGroup];              // Load room
         if (legend != nullptr) {
             #ifdef VERSION_FRANCAISE
-                trace_debug_P("LED %d à %d restaurées %s",
+                trace_debug_P("LED %d à %d restaurées à %08x %s",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    legend);
+                    previousColor[roomData.firstLed-1].previousColor, legend);
             #else
-                trace_debug_P("LED %d to %d restored %s",
+                trace_debug_P("LED %d to %d restored to 08x %s",
                     roomData.firstLed, roomData.firstLed + roomData.ledCount-1,
-                    legend);
+                    previousColor[roomData.firstLed-1].previousColor, legend);
             #endif
         }
         for (int i = roomData.firstLed; i < roomData.firstLed + roomData.ledCount; i++) {
@@ -2272,7 +2273,7 @@ void activateSequence(const uint16_t sequence) {
     }
 
     setRoomOrGroup(sequenceData.roomOrGroup, sequenceData.color,
-        traceVerbose? legend : nullptr, 100, true);
+        traceVerbose? legend : nullptr, 100);
     if (sequenceData.maxWaitTime) {
         cycleTable[sequenceData.cycle].waitTime =
             random (sequenceData.waitTime, sequenceData.maxWaitTime+1); // Random wait time
@@ -2399,7 +2400,10 @@ void clearAllLights(void) {
     #else
         trace_info("Clearing all lights");
     #endif
-    leds.clear();
+    colorTable_s color = colorTable[0];
+    for (uint16_t i = 0; i < ledCount; i++) {
+        leds.setPixelColor(i, color.r, color.g, color.b);
+    }
     setGlobalLuminosity(globalLuminosity);
     leds.show();
 }
@@ -2475,7 +2479,7 @@ void setLedAgenda(const uint16_t agendaPtr) {
         snprintf_P(legend, sizeof(legend), "(A%R%dC%d)",
             agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
     #endif
-    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend,agendaData.intensity);
+    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend, agendaData.intensity);
 }
 
 // Set group of light as specified in a given agenda line number
@@ -2490,7 +2494,7 @@ void setGroupAgenda(const uint16_t agendaPtr) {
         snprintf_P(legend, sizeof(legend), "(A%G%dC%d)",
             agendaPtr+AGENDA_OFFSET, agendaData.tableIndex+ROOM_OFFSET, agendaData.otherData+COLOR_OFFSET);
     #endif
-    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend,agendaData.intensity);
+    setRoomOrGroup(agendaData.tableIndex, agendaData.otherData, legend, agendaData.intensity);
 }
 
 // Set cycle as specified in a given agenda line number
@@ -3333,7 +3337,7 @@ int loadAgendaDetails(void) {
     delete[] roomTable;
     delete[] previousColor;
     previousColor = new previousColor_s[ledCount];                  // Create previous color table
-    memset(previousColor, 0, (ledCount) * sizeof(previousColor_s));
+    memset(previousColor, 0, ledCount * sizeof(previousColor_s));
     roomTable = new roomTable_s[roomCount+1];                       // Create room table
     memset(roomTable, 0, (roomCount+1) * sizeof(roomTable_s));
     groupTable = new groupTable_s[groupCount];                      // Create group table
