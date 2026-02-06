@@ -10,18 +10,22 @@
         <script>
             function loadEdit() {window.location.href = "./edit.htm";}      // Display edit page
             function loadSetup() {window.location.href = "./setup.htm";}    // Display setup page
+            function executeEvent(e) {loadSelect('fileToStart', './configs');} // Execute event received
             function $id(name) {return document.getElementById(name);}      // Return an element by id
             function hideCb(object, divName) {$id(divName).hidden = (object.checked == false);} // Hide div if checkbox not ticked
 </script>
 	</head>
-    <body onload="initAll(false);">
+    <body onload="loadSelect('fileToStart', './configs');initAll(false);">
         <div id="header" class="header">
             <label id="serverName"></label>&nbsp;<label id="serverVersion"></label><br>
         </div>
         <div class="center">
 			<fieldset>
 				<legend data-i18n-key="simulation">Simulation</legend>
-                <br>
+                <label data-i18n-key="fileToStart">Configuration file</label>&nbsp;
+                <select id="fileToStart" onchange="changed(this);">
+                </select>
+                <br><br>
                 <label data-i18n-key="startTime">Start time:</label>&nbsp;<input type="number" id="startTimeHour" min="0" max="23" style="width:35px" onchange="changed(this);"/>&nbsp;:&nbsp;<input type="number" id="startTimeMinute" min="0" max="59" style="width:35px" onchange="changed(this);"/>
                 &nbsp;&nbsp;&nbsp;
                 <label data-i18n-key="endTime">End time:</label>&nbsp;<input type="number" id="endTimeHour" min="0" max="23" style="width:35px" onchange="changed(this);"/>&nbsp;:&nbsp;<input type="number" id="endTimeMinute" min="0" max="59" style="width:35px" onchange="changed(this);"/>

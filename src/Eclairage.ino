@@ -1,4 +1,4 @@
-#define VERSION "26.1.16-5"
+#define VERSION "26.2.6-1"
 
 #define SERIAL_FLUSH
 
@@ -147,7 +147,7 @@ String accessPointPwd;                                              // Access po
 #else
     String espName = "ModelLights";                                 // Name of this module
 #endif
-String hostName;                                                    // Hosst name
+String hostName;                                                    // Host name
 String serverLanguage;                                              // This server language
 String syslogServer;                                                // Syslog server name or IP (can be empty)
 String fileToStart;                                                 // Configuration file to start
@@ -393,7 +393,7 @@ void syslogSetup(void);
     void serialLoop(void);
 #endif
 
-//  ---- Trace rountines ----
+//  ---- Trace routines ----
 
 #include <FF_Trace.h>                                               // Trace module https://github.com/FlyingDomotic/FF_Trace
 trace_callback(traceCallback);
@@ -1965,6 +1965,7 @@ void sendWebServerUpdate(void) {
     sendAnUpdateFlag = false;
 }
 
+// Send a message to ask for reboot
 void pleaseReboot(void) {
     #ifdef VERSION_FRANCAISE
         trace_info_P("*** Merci de relancer le module ***", NULL);
@@ -2306,6 +2307,7 @@ void lightLoop(void) {
     if (ledUpdateNeeded) leds.show();                               // Update LED if needed
 }
 
+// Activate a sequence
 void activateSequence(const uint16_t sequence) {
     sequenceTable_s sequenceData = sequenceTable[sequence];
 
@@ -2333,6 +2335,7 @@ void activateSequence(const uint16_t sequence) {
     cycleTable[sequenceData.cycle].lastRunTime = millis();          // Set start of wait
 }
 
+// Activate cycle
 void activateCycle (const uint8_t cycle, const uint8_t increment) {
     cycleTable_s cycleData = cycleTable[cycle];
     uint8_t seq = cycleData.activeSequence + increment;             // Next sequence
@@ -2355,6 +2358,7 @@ void activateCycle (const uint8_t cycle, const uint8_t increment) {
     }
 }
 
+// Activate flash
 void activateFlash (const uint8_t flash) {
     flashTable_s flashData = flashTable[flash];                     // Load flash table
     if (flashData.state == flashStarting                            // Flash sequence starting
@@ -2681,6 +2685,12 @@ void uploadLoop(void) {
         #else
             trace_info_P("Just received %s", lastUploadedFile.c_str());
         #endif
+        #ifdef VERSION_FRANCAISE
+            trace_debug_P("Envoi loadSelect", NULL);
+        #else
+            trace_debug_P("Sending loadSelect event", NULL);
+        #endif
+        events.send("loadSelect", "execute");                       // Send execute event to destination
         if (lastUploadedFile != fileToStart) {
             fileToStart = lastUploadedFile;
             writeSettings();

@@ -211,6 +211,11 @@ function startEvents(getDataEvents){
             showMessage("*** "+e.data+" ***");                      // Set message error
         }
     });
+    es.addEventListener('execute', (e) => {                         // Executed when receiving an "execute" event
+        if (e.data) {
+            executeEvent(e.data);                                   // Set message error
+        }
+    });
     if (getDataEvents) {
         es.addEventListener('data', (e) => {                        // Executed when receiving a "data" event
             if (e.data) {
