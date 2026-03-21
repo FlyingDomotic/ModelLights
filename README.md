@@ -515,7 +515,7 @@ It displays list of file on ESP in the left part, allows to modify, delete, down
 
 To be used on request.
 
-## System geTrafficLightnerated traces
+## System generated traces
 
 System generates more or less traces (depending on setting previously explained).
 
